@@ -88,6 +88,8 @@ public:
     const CharString&       GetSourceName(const HashString& name) const;
     const CharString&       GetBumpName(const HashString& name) const;
 
+    MyDict<HashString, MetroTextureInfo*>* GetDatabase();
+
 private:
     MyArray<MetroTextureInfo>             mPool;
     MyDict<HashString, MetroTextureInfo*> mDatabase;

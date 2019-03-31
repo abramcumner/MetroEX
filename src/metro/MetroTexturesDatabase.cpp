@@ -201,3 +201,7 @@ const CharString& MetroTexturesDatabase::GetBumpName(const HashString& name) con
     const MetroTextureInfo* mti = this->GetInfoByName((alias.hash == 0) ? name : alias);
     return (mti == nullptr) ? emptyStr : mti->bump_name.str;
 }
+
+MyDict<HashString, MetroTextureInfo*>* MetroTexturesDatabase::GetDatabase() {
+    return &mDatabase;
+}

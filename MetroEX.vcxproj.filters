@@ -73,6 +73,9 @@
     <ClCompile Include="src\metro\MetroMotion.cpp">
       <Filter>src\metro</Filter>
     </ClCompile>
+    <ClCompile Include="src\ui\TexturesDatabaseViewer.cpp">
+      <Filter>src\ui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ui\RenderPanel.h">
@@ -152,6 +155,9 @@
     </ClInclude>
     <ClInclude Include="src\metro\MetroMotion.h">
       <Filter>src\metro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\TexturesDatabaseViewer.h">
+      <Filter>src\ui</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

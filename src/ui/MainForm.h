@@ -65,6 +65,7 @@ namespace MetroEX {
             mExtractionProgressDlg = nullptr;
 
             mOriginalRootNode = nullptr;
+            mSavedNode = nullptr;
 
             InitializeComponent();
         }
@@ -77,9 +78,9 @@ namespace MetroEX {
         }
 
     private:
-        MetroEX::ImagePanel^        mImagePanel;
-        MetroEX::RenderPanel^       mRenderPanel;
-        MetroEX::SoundPanel^        mSoundPanel;
+        ImagePanel^        mImagePanel;
+        RenderPanel^       mRenderPanel;
+        SoundPanel^        mSoundPanel;
 
         //
         VFXReader*                  mVFXReader;
@@ -133,6 +134,9 @@ namespace MetroEX {
     private: System::Windows::Forms::TableLayoutPanel^  tableLayoutPanel1;
     private: System::Windows::Forms::TreeView^  treeView1;
     private: System::Windows::Forms::TextBox^  txtTreeSearch;
+    private: System::Windows::Forms::ToolStripButton^  toolBtnTexturesDatabase;
+
+
 
 
 
@@ -185,6 +189,7 @@ namespace MetroEX {
             this->toolBtnAbout = (gcnew System::Windows::Forms::ToolStripButton());
             this->toolStripSeparator2 = (gcnew System::Windows::Forms::ToolStripSeparator());
             this->toolBtnImgEnableAlpha = (gcnew System::Windows::Forms::ToolStripButton());
+            this->toolBtnTexturesDatabase = (gcnew System::Windows::Forms::ToolStripButton());
             this->filterTimer = (gcnew System::Windows::Forms::Timer(this->components));
             this->statusStrip1->SuspendLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->splitContainer1))->BeginInit();
@@ -427,9 +432,9 @@ namespace MetroEX {
             // toolStrip1
             // 
             this->toolStrip1->GripStyle = System::Windows::Forms::ToolStripGripStyle::Hidden;
-            this->toolStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(5) {
+            this->toolStrip1->Items->AddRange(gcnew cli::array< System::Windows::Forms::ToolStripItem^  >(6) {
                 this->toolBtnFileOpen,
-                    this->toolStripSeparator1, this->toolBtnAbout, this->toolStripSeparator2, this->toolBtnImgEnableAlpha
+                    this->toolStripSeparator1, this->toolBtnAbout, this->toolStripSeparator2, this->toolBtnImgEnableAlpha, this->toolBtnTexturesDatabase
             });
             this->toolStrip1->Location = System::Drawing::Point(0, 0);
             this->toolStrip1->Name = L"toolStrip1";
@@ -480,6 +485,18 @@ namespace MetroEX {
             this->toolBtnImgEnableAlpha->Text = L"A";
             this->toolBtnImgEnableAlpha->ToolTipText = L"Enable alpha";
             this->toolBtnImgEnableAlpha->Click += gcnew System::EventHandler(this, &MainForm::toolBtnImgEnableAlpha_Click);
+            // 
+            // toolBtnTexturesDatabase
+            // 
+            this->toolBtnTexturesDatabase->DisplayStyle = System::Windows::Forms::ToolStripItemDisplayStyle::Image;
+            this->toolBtnTexturesDatabase->Enabled = false;
+            this->toolBtnTexturesDatabase->Image = (cli::safe_cast<System::Drawing::Image^>(resources->GetObject(L"toolBtnTexturesDatabase.Image")));
+            this->toolBtnTexturesDatabase->ImageTransparentColor = System::Drawing::Color::Magenta;
+            this->toolBtnTexturesDatabase->Name = L"toolBtnTexturesDatabase";
+            this->toolBtnTexturesDatabase->Size = System::Drawing::Size(23, 22);
+            this->toolBtnTexturesDatabase->Text = L"toolStripButton1";
+            this->toolBtnTexturesDatabase->ToolTipText = L"Textures Database Viewer";
+            this->toolBtnTexturesDatabase->Click += gcnew System::EventHandler(this, &MainForm::toolBtnTexturesDatabase_Click);
             // 
             // filterTimer
             // 
@@ -542,9 +559,10 @@ namespace MetroEX {
         void extractFolderToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e);
         void extractFolderWithConversionToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e);
 
-    private:
+    public:
         void ShowErrorMessage(String^ message);
         //
+    private:
         void UpdateFilesList();
         void AddFoldersRecursive(const MetroFile& dir, const size_t folderIdx, TreeNode^ rootItem);
         void DetectFileAndShow(const size_t fileIdx);
@@ -566,5 +584,14 @@ namespace MetroEX {
         void txtTreeSearch_TextChanged(System::Object^ sender, System::EventArgs^ e);
         bool FilterTreeView(TreeNode^ node, String^ text);
         void filterTimer_Tick(System::Object^ sender, System::EventArgs^ e);
+
+        // textures database
+        void toolBtnTexturesDatabase_Click(System::Object^ sender, System::EventArgs^ e);
+        TreeNode^ FindNode(TreeNode^ parent, String^ text);
+        TreeNode^ mSavedNode;
+
+    public:
+        void ResetTreeView();
+        bool FindAndSelect(String^ text, array<String^>^ extensions);
 };
 }

@@ -12,6 +12,7 @@
 #include "MainForm.h"
 #include "ExtractionOptionsDgl.h"
 #include "AboutDlg.h"
+#include "TexturesDatabaseViewer.h"
 
 // String to std::string wrapper
 #include <msclr/marshal_cppstd.h>
@@ -159,6 +160,7 @@ namespace MetroEX {
 #endif
             }
 
+            this->toolBtnTexturesDatabase->Enabled = true;
             System::Windows::Forms::Cursor::Current = System::Windows::Forms::Cursors::Arrow;
         }
     }
@@ -172,14 +174,92 @@ namespace MetroEX {
 
     void MainForm::toolBtnImgEnableAlpha_Click(System::Object^, System::EventArgs^) {
         if (mImagePanel) {
-            toolBtnImgEnableAlpha->Checked = !toolBtnImgEnableAlpha->Checked;
-            mImagePanel->EnableTransparency(toolBtnImgEnableAlpha->Checked);
+            this->toolBtnImgEnableAlpha->Checked = !toolBtnImgEnableAlpha->Checked;
+            this->mImagePanel->EnableTransparency(toolBtnImgEnableAlpha->Checked);
         }
     }
 
+    void MainForm::toolBtnTexturesDatabase_Click(System::Object^ sender, System::EventArgs^ e) {
+        if (mTexturesDatabase == nullptr) {
+            return;
+        }
+
+        TexturesDatabaseViewer wnd;
+
+        wnd.SetDataProvider(this->mTexturesDatabase->GetDatabase());
+        wnd.SetMainForm(this);
+        wnd.FillWithData();
+
+        wnd.ShowDialog();
+    }
+
     // treeview
+    void MainForm::ResetTreeView() {
+        if (this->treeView1 == nullptr ||
+            this->treeView1->Nodes->Count == 0 ||
+            this->treeView1->Nodes[0] == this->mOriginalRootNode
+        ) {
+            return;
+        }
+
+        this->treeView1->BeginUpdate();
+        this->treeView1->Nodes->Clear();
+        this->treeView1->Nodes->Add(this->mOriginalRootNode);
+        this->treeView1->EndUpdate();
+
+        this->txtTreeSearch->Text = String::Empty;
+        this->filterTimer->Stop();
+    }
+
+    bool MainForm::FindAndSelect(String^ text, array<String^>^ extensions) {
+        auto textParts = text->Split('\\');
+
+        TreeNode^ node = this->mOriginalRootNode;
+        TreeNode^ foundNode;
+        for (int i = 0; i < textParts->Length; i++) {
+            foundNode = this->FindNode(node, textParts[i]);
+
+            if (i == textParts->Length - 1 && extensions != nullptr) {
+                for (int j = 0; j < extensions->Length; j++) {
+                    foundNode = this->FindNode(node, textParts[i] + extensions[j]);
+
+                    if (foundNode != nullptr) {
+                        break;
+                    }
+                }
+            }
+
+            if (foundNode == nullptr) {
+                return false;
+            }
+
+            node = foundNode;
+        }
+
+        // assert(this->mOriginalRootNode == this->treeView1->Nodes[0]);
+
+        this->mSavedNode = node;
+        this->treeView1->SelectedNode = node;
+
+        return true;
+    }
+
+    TreeNode^ MainForm::FindNode(TreeNode^ parent, String^ text) {
+        String^ term = text->ToUpper();
+
+        for (int i = 0; i < parent->Nodes->Count; i++) {
+            if (parent->Nodes[i]->Text->ToUpper() == term) {
+                return parent->Nodes[i];
+            }
+        }
+
+        return nullptr;
+    }
+
     void MainForm::treeView1_AfterSelect(System::Object^, System::Windows::Forms::TreeViewEventArgs^ e) {
-        const size_t fileIdx = safe_cast<size_t>(e->Node->Tag) & kFileIdxMask;
+        TreeNode^ node = e->Node != nullptr ? e->Node : this->mSavedNode;
+
+        const size_t fileIdx = safe_cast<size_t>(node->Tag) & kFileIdxMask;
 
         if (mVFXReader) {
             const MetroFile& mf = mVFXReader->GetFile(fileIdx);

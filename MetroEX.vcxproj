@@ -125,6 +125,7 @@
     <ClCompile Include="src\ui\MainForm.cpp" />
     <ClCompile Include="src\ui\RenderPanel.cpp" />
     <ClCompile Include="src\ui\SoundPanel.cpp" />
+    <ClCompile Include="src\ui\TexturesDatabaseViewer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libs\bc7enc16\bc7decomp.h" />
@@ -163,6 +164,9 @@
     <ClInclude Include="src\ui\SoundPanel.h">
       <FileType>CppControl</FileType>
     </ClInclude>
+    <ClInclude Include="src\ui\TexturesDatabaseViewer.h">
+      <FileType>CppForm</FileType>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="src\ui\ExtractionOptionsDgl.resx">
@@ -189,6 +193,9 @@
       <DependentUpon>src\ui\SoundPanel.h</DependentUpon>
       <LogicalName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MetroEX.SoundPanel.resources</LogicalName>
       <LogicalName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MetroEX.SoundPanel.resources</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ui\TexturesDatabaseViewer.resx">
+      <DependentUpon>src\ui\TexturesDatabaseViewer.h</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
