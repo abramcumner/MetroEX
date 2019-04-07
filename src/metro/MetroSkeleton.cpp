@@ -66,6 +66,7 @@ const vec3& MetroSkeleton::GetBonePosition(const size_t idx) const {
 mat4 MetroSkeleton::GetBoneTransform(const size_t idx) const {
     mat4 result = MatFromQuat(this->bones[idx].q);
     result[3] = vec4(this->bones[idx].t, 1.0f);
+
     return result;
 }
 
@@ -74,7 +75,7 @@ mat4 MetroSkeleton::GetBoneFullTransform(const size_t idx) const {
     if (parentIdx == MetroBone::InvalidIdx) {
         return this->GetBoneTransform(idx);
     } else {
-        return this->GetBoneTransform(idx) * this->GetBoneFullTransform(parentIdx);
+        return this->GetBoneFullTransform(parentIdx) * this->GetBoneTransform(idx);
     }
 }
 
@@ -94,11 +95,11 @@ const size_t MetroSkeleton::GetBoneParentIdx(const size_t idx) const {
 
 const CharString& MetroSkeleton::GetBoneName(const size_t idx) const {
     const RefString& name = this->bones[idx].name;
-    if (name.IsValidRef()) {
-        return mStringsDict[name.ref];
-    } else {
-        return name.str;
-    }
+    return name.IsValidRef() ? mStringsDict[name.ref] : name.str;
+}
+
+const CharString& MetroSkeleton::GetMotionsStr() const {
+    return this->motions.IsValidRef() ? mStringsDict[this->motions.ref] : this->motions.str;
 }
 
 
@@ -118,12 +119,20 @@ void MetroSkeleton::DeserializeSelf(MemStream& stream, const uint8_t flags) {
     METRO_READ_MEMBER(s, crc);
     // if version < 15 - read facefx (RefString)
     METRO_READ_MEMBER(s, pfnn); // if version > 16
-    METRO_READ_MEMBER(s, has_as); // if version > 20
+    if (this->ver > 20) {
+        METRO_READ_MEMBER(s, has_as); // if version > 20
+    }
     METRO_READ_MEMBER(s, motions);
     METRO_READ_MEMBER(s, source_info); // if version > 12
     METRO_READ_MEMBER(s, parent_skeleton); // if version > 13
     METRO_READ_STRUCT_ARRAY_MEMBER(s, parent_bone_maps); // if version > 13
     METRO_READ_STRUCT_ARRAY_MEMBER(s, bones);
+
+    //#NOTE_SK: fix-up bones transforms by swizzling them back
+    for (auto& b : bones) {
+        b.q = MetroSwizzle(b.q);
+        b.t = MetroSwizzle(b.t);
+    }
 
     //#TODO_SK:
     // locators

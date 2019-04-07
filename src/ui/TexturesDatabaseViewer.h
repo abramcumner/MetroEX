@@ -142,6 +142,8 @@ namespace MetroEX {
             this->dataTree->Name = L"dataTree";
             this->dataTree->Size = System::Drawing::Size(309, 852);
             this->dataTree->TabIndex = 1;
+            this->dataTree->AfterCollapse += gcnew System::Windows::Forms::TreeViewEventHandler(this, &TexturesDatabaseViewer::dataTree_AfterCollapse);
+            this->dataTree->AfterExpand += gcnew System::Windows::Forms::TreeViewEventHandler(this, &TexturesDatabaseViewer::dataTree_AfterExpand);
             this->dataTree->NodeMouseClick += gcnew System::Windows::Forms::TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::dataTree_NodeMouseClick);
             this->dataTree->NodeMouseDoubleClick += gcnew System::Windows::Forms::TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::dataTree_NodeMouseDoubleClick);
             // 
@@ -210,5 +212,7 @@ namespace MetroEX {
         TreeNode^ FindNode(TreeNode^ parent, String^ text);
         void SortNodesRecursively(TreeNode^ parent, NodeSorter^ sorter);
         void dataTree_NodeMouseDoubleClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e);
+        void dataTree_AfterCollapse(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e);
+        void dataTree_AfterExpand(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e);
 };
 }

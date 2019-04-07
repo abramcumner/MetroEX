@@ -17,7 +17,7 @@
       <Filter>src\metro</Filter>
     </ClCompile>
     <ClCompile Include="src\metro\MetroTexture.cpp">
-      <Filter>src\metro</Filter>
+      <Filter>src\metro</Filter>toolBtnTexturesDatabase
     </ClCompile>
     <ClCompile Include="libs\lz4\lz4.c">
       <Filter>libs\lz4</Filter>
@@ -78,6 +78,11 @@
     </ClCompile>
     <ClCompile Include="src\ui\TexturePropertiesViewer.cpp">
       <Filter>src\ui</Filter>
+    <ClCompile Include="src\log.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="src\metro\MetroDatabases.h">
+      <Filter>src\metro</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -167,6 +172,11 @@
     </ClInclude>
     <ClInclude Include="src\ui\NodeSorter.h">
       <Filter>src\ui</Filter>
+    <ClInclude Include="src\log.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="src\metro\MetroConfigNames.h">
+      <Filter>src\metro</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

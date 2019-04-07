@@ -5,9 +5,9 @@
 
 using namespace msclr::interop;
 
-static const int kImageIdxFile = 0;
-static const int kImageIdxFoldeClosed = 1;
-static const int kImageIdxFolderOpen = 2;
+static const int kImageIdxFile = 6;
+static const int kImageIdxFolderClosed = 0;
+static const int kImageIdxFolderOpen = 1;
 
 namespace MetroEX {
 
@@ -22,8 +22,8 @@ namespace MetroEX {
         this->dataTree->Nodes->Clear();
 
         this->mOriginalRootNode = this->dataTree->Nodes->Add("content");
-        this->mOriginalRootNode->ImageIndex = kImageIdxFoldeClosed;
-        this->mOriginalRootNode->SelectedImageIndex = kImageIdxFolderOpen;
+        this->mOriginalRootNode->ImageIndex = kImageIdxFolderClosed;
+        this->mOriginalRootNode->SelectedImageIndex = kImageIdxFolderClosed;
 
         MyArray<MetroTextureInfo>* pool = this->mDataProvider->GetPool();
         for (size_t index = 0; index < pool->size(); index++) {
@@ -37,8 +37,8 @@ namespace MetroEX {
 
                 if (foundNode == nullptr) {
                     parentNode = parentNode->Nodes->Add(parts[i]);
-                    parentNode->ImageIndex = kImageIdxFoldeClosed;
-                    parentNode->SelectedImageIndex = kImageIdxFolderOpen;
+                    parentNode->ImageIndex = kImageIdxFolderClosed;
+                    parentNode->SelectedImageIndex = kImageIdxFolderClosed;
                 } else {
                     parentNode = foundNode;
                 }
@@ -47,6 +47,7 @@ namespace MetroEX {
             TreeNode^ node = parentNode->Nodes->Add(parts[parts->Length - 1]);
             node->Tag = index;
             node->ImageIndex = kImageIdxFile;
+            node->SelectedImageIndex = kImageIdxFile;
         }
 
         NodeSorter^ sorter = gcnew NodeSorter();
@@ -178,6 +179,16 @@ namespace MetroEX {
 
             return marshal_as<String^>(realTexInfo->name);
         }
+    }
+
+    void TexturesDatabaseViewer::dataTree_AfterCollapse(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e) {
+        e->Node->ImageIndex = kImageIdxFolderClosed;
+        e->Node->SelectedImageIndex = kImageIdxFolderClosed;
+    }
+
+    void TexturesDatabaseViewer::dataTree_AfterExpand(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e) {
+        e->Node->ImageIndex = kImageIdxFolderOpen;
+        e->Node->SelectedImageIndex = kImageIdxFolderOpen;
     }
 
 }
