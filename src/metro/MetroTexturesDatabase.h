@@ -89,6 +89,7 @@ public:
     const CharString&       GetBumpName(const HashString& name) const;
 
     MyDict<HashString, MetroTextureInfo*>* GetDatabase();
+    MyArray<MetroTextureInfo>* GetPool();
 
 private:
     MyArray<MetroTextureInfo>             mPool;

@@ -205,3 +205,7 @@ const CharString& MetroTexturesDatabase::GetBumpName(const HashString& name) con
 MyDict<HashString, MetroTextureInfo*>* MetroTexturesDatabase::GetDatabase() {
     return &mDatabase;
 }
+
+MyArray<MetroTextureInfo>* MetroTexturesDatabase::GetPool() {
+    return &mPool;
+}

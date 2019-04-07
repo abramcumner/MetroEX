@@ -13,6 +13,7 @@
 #include "ExtractionOptionsDgl.h"
 #include "AboutDlg.h"
 #include "TexturesDatabaseViewer.h"
+#include "ui\NodeSorter.h"
 
 // String to std::string wrapper
 #include <msclr/marshal_cppstd.h>
@@ -34,20 +35,6 @@ namespace MetroEX {
     fs::path StringToPath(String^ s) {
         return marshal_as<std::wstring>(s);
     }
-
-    ref class NodeSorter : public System::Collections::IComparer {
-    public:
-        virtual int Compare(Object^ x, Object^ y) {
-            System::Windows::Forms::TreeNode^ left = safe_cast<System::Windows::Forms::TreeNode^>(x);
-            System::Windows::Forms::TreeNode^ right = safe_cast<System::Windows::Forms::TreeNode^>(y);
-
-            if (left->Nodes->Count) {
-                return (right->Nodes->Count > 0) ? left->Text->CompareTo(right->Text) : -1;
-            } else {
-                return (right->Nodes->Count > 0) ? 1 : left->Text->CompareTo(right->Text);
-            }
-        }
-    };
 
     static FileType DetectFileType(const MetroFile& mf) {
         FileType result = FileType::Unknown;
@@ -186,11 +173,11 @@ namespace MetroEX {
 
         TexturesDatabaseViewer wnd;
 
-        wnd.SetDataProvider(this->mTexturesDatabase->GetDatabase());
+        wnd.SetDataProvider(this->mTexturesDatabase);
         wnd.SetMainForm(this);
         wnd.FillWithData();
 
-        wnd.ShowDialog();
+        wnd.ShowDialog(this);
     }
 
     // treeview
@@ -285,25 +272,27 @@ namespace MetroEX {
     }
 
     void MainForm::treeView1_AfterExpand(System::Object^, System::Windows::Forms::TreeViewEventArgs^ e) {
-        e->Node->ImageIndex = kImageIdxFoldeOpen;
-        e->Node->SelectedImageIndex = kImageIdxFoldeOpen;
+        TreeNode^ node = e->Node != nullptr ? e->Node : this->mSavedNode;
 
-        const size_t tag = safe_cast<size_t>(e->Node->Tag);
+        node->ImageIndex = kImageIdxFoldeOpen;
+        node->SelectedImageIndex = kImageIdxFoldeOpen;
+
+        const size_t tag = safe_cast<size_t>(node->Tag);
         if (0 == (tag & kFolderSortedFlag)) {
             const size_t fileIdx = tag & kFileIdxMask;
 
-            if (e->Node->Nodes->Count > 1) {
+            if (node->Nodes->Count > 1) {
                 System::Windows::Forms::Cursor::Current = System::Windows::Forms::Cursors::WaitCursor;
 
                 //#NOTE_SK: somehow, BeginUpdate/BeginUpdate makes it even slower, so commented out for the moment
                 //this->treeView1->BeginUpdate();
                 this->treeView1->SuspendLayout();
-                array<TreeNode^>^ nodes = gcnew array<TreeNode^>(e->Node->Nodes->Count);
-                e->Node->Nodes->CopyTo(nodes, 0);
+                array<TreeNode^>^ nodes = gcnew array<TreeNode^>(node->Nodes->Count);
+                node->Nodes->CopyTo(nodes, 0);
                 NodeSorter^ sorter = gcnew NodeSorter();
                 System::Array::Sort(nodes, sorter);
-                e->Node->Nodes->Clear();
-                e->Node->Nodes->AddRange(nodes);
+                node->Nodes->Clear();
+                node->Nodes->AddRange(nodes);
                 delete sorter;
                 delete nodes;
                 //this->treeView1->EndUpdate();
@@ -312,7 +301,7 @@ namespace MetroEX {
                 System::Windows::Forms::Cursor::Current = System::Windows::Forms::Cursors::Arrow;
             }
 
-            e->Node->Tag = kFolderSortedFlag | fileIdx;
+            node->Tag = kFolderSortedFlag | fileIdx;
         }
     }
 
@@ -514,7 +503,7 @@ namespace MetroEX {
         if (String::IsNullOrWhiteSpace(this->txtTreeSearch->Text)) {
             this->treeView1->Nodes->Add(mOriginalRootNode);
         } else {
-            TreeNode^ root = dynamic_cast<TreeNode^>(mOriginalRootNode->Clone());
+            TreeNode^ root = safe_cast<TreeNode^>(mOriginalRootNode->Clone());
             this->FilterTreeView(root, this->txtTreeSearch->Text);
             this->treeView1->Nodes->Add(root);
 

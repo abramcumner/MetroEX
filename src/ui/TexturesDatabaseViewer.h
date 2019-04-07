@@ -1,7 +1,10 @@
 #pragma once
+#include <msclr/marshal_cppstd.h>
 #include "mycommon.h"
 #include "metro\MetroTexturesDatabase.h"
 #include "MainForm.h"
+#include "ui\TexturePropertiesViewer.h"
+#include "ui\NodeSorter.h"
 
 namespace MetroEX {
 
@@ -18,7 +21,7 @@ namespace MetroEX {
     public ref class TexturesDatabaseViewer : public System::Windows::Forms::Form
     {
     public:
-        TexturesDatabaseViewer(void)
+        TexturesDatabaseViewer()
         {
             InitializeComponent();
             //
@@ -26,6 +29,9 @@ namespace MetroEX {
             //
 
             mDataProvider = nullptr;
+            mMainForm = nullptr;
+            mOriginalRootNode = nullptr;
+            mPropertiesViewer = nullptr;
 
             mFileExtensions = gcnew array<String^>(3);
             mFileExtensions[0] = ".2048";
@@ -44,7 +50,7 @@ namespace MetroEX {
                 delete components;
             }
         }
-    private: System::Data::DataSet^  texturesDataSet;
+
     protected:
 
     protected:
@@ -55,10 +61,15 @@ namespace MetroEX {
     private: System::Windows::Forms::TableLayoutPanel^  tableLayoutPanel1;
     private: System::Windows::Forms::TextBox^  filterText;
 
-    private: System::Windows::Forms::DataGridView^  dataGridView;
-    private: System::Windows::Forms::DataGridViewTextBoxColumn^  textureName;
-    private: System::Windows::Forms::DataGridViewCheckBoxColumn^  textureStreamable;
+
+
+
     private: System::Windows::Forms::Timer^  filterTimer;
+    private: System::Windows::Forms::TreeView^  dataTree;
+
+    private: System::Windows::Forms::SplitContainer^  splitContainer1;
+    private: System::Windows::Forms::PropertyGrid^  propertyGrid;
+    private: System::Windows::Forms::ImageList^  treeIcons;
     private: System::ComponentModel::IContainer^  components;
 
 
@@ -80,22 +91,20 @@ namespace MetroEX {
         void InitializeComponent(void)
         {
             this->components = (gcnew System::ComponentModel::Container());
-            this->texturesDataSet = (gcnew System::Data::DataSet());
+            System::ComponentModel::ComponentResourceManager^  resources = (gcnew System::ComponentModel::ComponentResourceManager(TexturesDatabaseViewer::typeid));
             this->tableLayoutPanel1 = (gcnew System::Windows::Forms::TableLayoutPanel());
             this->filterText = (gcnew System::Windows::Forms::TextBox());
-            this->dataGridView = (gcnew System::Windows::Forms::DataGridView());
-            this->textureName = (gcnew System::Windows::Forms::DataGridViewTextBoxColumn());
-            this->textureStreamable = (gcnew System::Windows::Forms::DataGridViewCheckBoxColumn());
+            this->dataTree = (gcnew System::Windows::Forms::TreeView());
+            this->treeIcons = (gcnew System::Windows::Forms::ImageList(this->components));
             this->filterTimer = (gcnew System::Windows::Forms::Timer(this->components));
-            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->texturesDataSet))->BeginInit();
+            this->splitContainer1 = (gcnew System::Windows::Forms::SplitContainer());
+            this->propertyGrid = (gcnew System::Windows::Forms::PropertyGrid());
             this->tableLayoutPanel1->SuspendLayout();
-            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->dataGridView))->BeginInit();
+            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->splitContainer1))->BeginInit();
+            this->splitContainer1->Panel1->SuspendLayout();
+            this->splitContainer1->Panel2->SuspendLayout();
+            this->splitContainer1->SuspendLayout();
             this->SuspendLayout();
-            // 
-            // texturesDataSet
-            // 
-            this->texturesDataSet->DataSetName = L"TexturesDataSet";
-            this->texturesDataSet->Locale = (gcnew System::Globalization::CultureInfo(L"en-US"));
             // 
             // tableLayoutPanel1
             // 
@@ -105,14 +114,14 @@ namespace MetroEX {
             this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Percent,
                 50)));
             this->tableLayoutPanel1->Controls->Add(this->filterText, 0, 0);
-            this->tableLayoutPanel1->Controls->Add(this->dataGridView, 0, 1);
+            this->tableLayoutPanel1->Controls->Add(this->dataTree, 0, 1);
             this->tableLayoutPanel1->Dock = System::Windows::Forms::DockStyle::Fill;
             this->tableLayoutPanel1->Location = System::Drawing::Point(0, 0);
             this->tableLayoutPanel1->Name = L"tableLayoutPanel1";
             this->tableLayoutPanel1->RowCount = 2;
             this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 4.811716F)));
             this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 95.18829F)));
-            this->tableLayoutPanel1->Size = System::Drawing::Size(649, 478);
+            this->tableLayoutPanel1->Size = System::Drawing::Size(315, 901);
             this->tableLayoutPanel1->TabIndex = 0;
             // 
             // filterText
@@ -120,58 +129,75 @@ namespace MetroEX {
             this->filterText->Dock = System::Windows::Forms::DockStyle::Fill;
             this->filterText->Location = System::Drawing::Point(3, 3);
             this->filterText->Name = L"filterText";
-            this->filterText->Size = System::Drawing::Size(643, 20);
+            this->filterText->Size = System::Drawing::Size(309, 20);
             this->filterText->TabIndex = 0;
             this->filterText->TextChanged += gcnew System::EventHandler(this, &TexturesDatabaseViewer::filterText_TextChanged);
             // 
-            // dataGridView
+            // dataTree
             // 
-            this->dataGridView->AllowUserToAddRows = false;
-            this->dataGridView->AllowUserToDeleteRows = false;
-            this->dataGridView->AllowUserToResizeRows = false;
-            this->dataGridView->ColumnHeadersHeightSizeMode = System::Windows::Forms::DataGridViewColumnHeadersHeightSizeMode::AutoSize;
-            this->dataGridView->Columns->AddRange(gcnew cli::array< System::Windows::Forms::DataGridViewColumn^  >(2) {
-                this->textureName,
-                    this->textureStreamable
-            });
-            this->dataGridView->Dock = System::Windows::Forms::DockStyle::Fill;
-            this->dataGridView->Location = System::Drawing::Point(3, 26);
-            this->dataGridView->MultiSelect = false;
-            this->dataGridView->Name = L"dataGridView";
-            this->dataGridView->Size = System::Drawing::Size(643, 449);
-            this->dataGridView->TabIndex = 1;
-            this->dataGridView->MouseDoubleClick += gcnew System::Windows::Forms::MouseEventHandler(this, &TexturesDatabaseViewer::dataGridView_MouseDoubleClick);
+            this->dataTree->Dock = System::Windows::Forms::DockStyle::Fill;
+            this->dataTree->ImageIndex = 0;
+            this->dataTree->ImageList = this->treeIcons;
+            this->dataTree->Location = System::Drawing::Point(3, 46);
+            this->dataTree->Name = L"dataTree";
+            this->dataTree->SelectedImageIndex = 0;
+            this->dataTree->Size = System::Drawing::Size(309, 852);
+            this->dataTree->TabIndex = 1;
+            this->dataTree->NodeMouseClick += gcnew System::Windows::Forms::TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::dataTree_NodeMouseClick);
+            this->dataTree->NodeMouseDoubleClick += gcnew System::Windows::Forms::TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::dataTree_NodeMouseDoubleClick);
             // 
-            // textureName
+            // treeIcons
             // 
-            this->textureName->HeaderText = L"Name";
-            this->textureName->Name = L"textureName";
-            this->textureName->ReadOnly = true;
-            this->textureName->Width = 250;
-            // 
-            // textureStreamable
-            // 
-            this->textureStreamable->HeaderText = L"Streamable";
-            this->textureStreamable->Name = L"textureStreamable";
-            this->textureStreamable->ReadOnly = true;
+            this->treeIcons->ImageStream = (cli::safe_cast<System::Windows::Forms::ImageListStreamer^>(resources->GetObject(L"treeIcons.ImageStream")));
+            this->treeIcons->TransparentColor = System::Drawing::Color::Transparent;
+            this->treeIcons->Images->SetKeyName(0, L"document.png");
+            this->treeIcons->Images->SetKeyName(1, L"folder_closed.png");
+            this->treeIcons->Images->SetKeyName(2, L"folder_opened.png");
             // 
             // filterTimer
             // 
             this->filterTimer->Interval = 1000;
             this->filterTimer->Tick += gcnew System::EventHandler(this, &TexturesDatabaseViewer::filterTimer_Tick);
             // 
+            // splitContainer1
+            // 
+            this->splitContainer1->Dock = System::Windows::Forms::DockStyle::Fill;
+            this->splitContainer1->Location = System::Drawing::Point(0, 0);
+            this->splitContainer1->Name = L"splitContainer1";
+            // 
+            // splitContainer1.Panel1
+            // 
+            this->splitContainer1->Panel1->Controls->Add(this->tableLayoutPanel1);
+            // 
+            // splitContainer1.Panel2
+            // 
+            this->splitContainer1->Panel2->Controls->Add(this->propertyGrid);
+            this->splitContainer1->Size = System::Drawing::Size(946, 901);
+            this->splitContainer1->SplitterDistance = 315;
+            this->splitContainer1->TabIndex = 1;
+            // 
+            // propertyGrid
+            // 
+            this->propertyGrid->Dock = System::Windows::Forms::DockStyle::Fill;
+            this->propertyGrid->Location = System::Drawing::Point(0, 0);
+            this->propertyGrid->Name = L"propertyGrid";
+            this->propertyGrid->Size = System::Drawing::Size(627, 901);
+            this->propertyGrid->TabIndex = 0;
+            // 
             // TexturesDatabaseViewer
             // 
             this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-            this->ClientSize = System::Drawing::Size(649, 478);
-            this->Controls->Add(this->tableLayoutPanel1);
+            this->ClientSize = System::Drawing::Size(946, 901);
+            this->Controls->Add(this->splitContainer1);
             this->Name = L"TexturesDatabaseViewer";
-            this->Text = L"TexturesDatabaseViewer";
-            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->texturesDataSet))->EndInit();
+            this->Text = L"Textures Database Viewer";
             this->tableLayoutPanel1->ResumeLayout(false);
             this->tableLayoutPanel1->PerformLayout();
-            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->dataGridView))->EndInit();
+            this->splitContainer1->Panel1->ResumeLayout(false);
+            this->splitContainer1->Panel2->ResumeLayout(false);
+            (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->splitContainer1))->EndInit();
+            this->splitContainer1->ResumeLayout(false);
             this->ResumeLayout(false);
 
         }
@@ -179,15 +205,22 @@ namespace MetroEX {
 #pragma endregion
 
     public:
-        void SetDataProvider(MyDict<HashString, MetroTextureInfo*>* data);
+        void SetDataProvider(MetroTexturesDatabase* data);
         void SetMainForm(MainForm^ form);
         void FillWithData();
     private:
-        MyDict<HashString, MetroTextureInfo*>* mDataProvider;
+        TreeNode^ mOriginalRootNode;
+        MetroTexturesDatabase* mDataProvider;
         MainForm^ mMainForm;
         array<String^>^ mFileExtensions;
+        TexturePropertiesViewer^ mPropertiesViewer;
+        String^ GetRealPath(size_t index);
         void filterTimer_Tick(System::Object^ sender, System::EventArgs^ e);
         void filterText_TextChanged(System::Object^ sender, System::EventArgs^ e);
-        void dataGridView_MouseDoubleClick(System::Object^ sender, System::Windows::Forms::MouseEventArgs^ e);
+        void dataTree_NodeMouseClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e);
+        void FilterTreeView(TreeNode^ node, String^ text);
+        TreeNode^ FindNode(TreeNode^ parent, String^ text);
+        void SortNodesRecursively(TreeNode^ parent, NodeSorter^ sorter);
+        void dataTree_NodeMouseDoubleClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e);
 };
 }
