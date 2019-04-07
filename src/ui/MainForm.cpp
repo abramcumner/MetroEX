@@ -173,6 +173,7 @@ namespace MetroEX {
 
         TexturesDatabaseViewer wnd(this, this->mTexturesDatabase, this->imageListMain);
 
+        wnd.Icon = this->Icon;
         wnd.ShowDialog(this);
     }
 
