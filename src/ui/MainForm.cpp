@@ -171,11 +171,7 @@ namespace MetroEX {
             return;
         }
 
-        TexturesDatabaseViewer wnd;
-
-        wnd.SetDataProvider(this->mTexturesDatabase);
-        wnd.SetMainForm(this);
-        wnd.FillWithData();
+        TexturesDatabaseViewer wnd(this, this->mTexturesDatabase, this->imageListMain);
 
         wnd.ShowDialog(this);
     }

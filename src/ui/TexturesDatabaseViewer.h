@@ -21,15 +21,15 @@ namespace MetroEX {
     public ref class TexturesDatabaseViewer : public System::Windows::Forms::Form
     {
     public:
-        TexturesDatabaseViewer()
+        TexturesDatabaseViewer(MainForm^ form, MetroTexturesDatabase* data, System::Windows::Forms::ImageList^ imageList)
         {
             InitializeComponent();
             //
             //TODO: Add the constructor code here
             //
 
-            mDataProvider = nullptr;
-            mMainForm = nullptr;
+            mDataProvider = data;
+            mMainForm = form;
             mOriginalRootNode = nullptr;
             mPropertiesViewer = nullptr;
 
@@ -37,6 +37,10 @@ namespace MetroEX {
             mFileExtensions[0] = ".2048";
             mFileExtensions[1] = ".1024";
             mFileExtensions[2] = ".512";
+
+            this->dataTree->ImageList = imageList;
+
+            this->FillWithData();
         }
 
     protected:
@@ -69,7 +73,7 @@ namespace MetroEX {
 
     private: System::Windows::Forms::SplitContainer^  splitContainer1;
     private: System::Windows::Forms::PropertyGrid^  propertyGrid;
-    private: System::Windows::Forms::ImageList^  treeIcons;
+
     private: System::ComponentModel::IContainer^  components;
 
 
@@ -91,11 +95,9 @@ namespace MetroEX {
         void InitializeComponent(void)
         {
             this->components = (gcnew System::ComponentModel::Container());
-            System::ComponentModel::ComponentResourceManager^  resources = (gcnew System::ComponentModel::ComponentResourceManager(TexturesDatabaseViewer::typeid));
             this->tableLayoutPanel1 = (gcnew System::Windows::Forms::TableLayoutPanel());
             this->filterText = (gcnew System::Windows::Forms::TextBox());
             this->dataTree = (gcnew System::Windows::Forms::TreeView());
-            this->treeIcons = (gcnew System::Windows::Forms::ImageList(this->components));
             this->filterTimer = (gcnew System::Windows::Forms::Timer(this->components));
             this->splitContainer1 = (gcnew System::Windows::Forms::SplitContainer());
             this->propertyGrid = (gcnew System::Windows::Forms::PropertyGrid());
@@ -136,23 +138,12 @@ namespace MetroEX {
             // dataTree
             // 
             this->dataTree->Dock = System::Windows::Forms::DockStyle::Fill;
-            this->dataTree->ImageIndex = 0;
-            this->dataTree->ImageList = this->treeIcons;
             this->dataTree->Location = System::Drawing::Point(3, 46);
             this->dataTree->Name = L"dataTree";
-            this->dataTree->SelectedImageIndex = 0;
             this->dataTree->Size = System::Drawing::Size(309, 852);
             this->dataTree->TabIndex = 1;
             this->dataTree->NodeMouseClick += gcnew System::Windows::Forms::TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::dataTree_NodeMouseClick);
             this->dataTree->NodeMouseDoubleClick += gcnew System::Windows::Forms::TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::dataTree_NodeMouseDoubleClick);
-            // 
-            // treeIcons
-            // 
-            this->treeIcons->ImageStream = (cli::safe_cast<System::Windows::Forms::ImageListStreamer^>(resources->GetObject(L"treeIcons.ImageStream")));
-            this->treeIcons->TransparentColor = System::Drawing::Color::Transparent;
-            this->treeIcons->Images->SetKeyName(0, L"document.png");
-            this->treeIcons->Images->SetKeyName(1, L"folder_closed.png");
-            this->treeIcons->Images->SetKeyName(2, L"folder_opened.png");
             // 
             // filterTimer
             // 
@@ -204,11 +195,8 @@ namespace MetroEX {
 
 #pragma endregion
 
-    public:
-        void SetDataProvider(MetroTexturesDatabase* data);
-        void SetMainForm(MainForm^ form);
-        void FillWithData();
     private:
+        void FillWithData();
         TreeNode^ mOriginalRootNode;
         MetroTexturesDatabase* mDataProvider;
         MainForm^ mMainForm;

@@ -11,14 +11,6 @@ static const int kImageIdxFolderOpen = 2;
 
 namespace MetroEX {
 
-    void TexturesDatabaseViewer::SetDataProvider(MetroTexturesDatabase* data) {
-        this->mDataProvider = data;
-    }
-
-    void TexturesDatabaseViewer::SetMainForm(MainForm^ form) {
-        this->mMainForm = form;
-    }
-
     void TexturesDatabaseViewer::FillWithData() {
         if (this->mDataProvider == nullptr) {
             return;
