@@ -6,6 +6,7 @@
 namespace MetroEX {
     using namespace System;
     using namespace msclr::interop;
+    using namespace System::ComponentModel;
 
     ref class TexturePropertiesViewer
     {
@@ -25,8 +26,8 @@ namespace MetroEX {
             mRealPath = path;
         }
 
-        // [Category("Common")]
-        // [Description("Texture name")]
+        [Category("Common")]
+        [Description("Texture name")]
         property String^ Name {
             String^ get() { return marshal_as<String^>(this->mTextureInfo->name); }
         };
