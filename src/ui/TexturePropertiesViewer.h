@@ -29,20 +29,20 @@ namespace MetroEX {
         [Category("Common")]
         [Description("Texture name")]
         property String^ Name {
-            String^ get() { return marshal_as<String^>(this->mTextureInfo->name); }
+            String^ get() { return marshal_as<String^>(mTextureInfo->name); }
         };
 
         [Category("Common")]
         [Description("Texture flags")]
         property String^ Flags {
-            String^ get() { return Convert::ToString(this->mTextureInfo->flags, 2)->PadLeft(8, L'0'); }
+            String^ get() { return Convert::ToString(mTextureInfo->flags, 2)->PadLeft(8, L'0'); }
         }
 
         [Category("Common")]
         [Description("Texture type")]
         property String^ Type {
             String^ get() {
-                switch (safe_cast<MetroTextureInfo::TextureType>(this->mTextureInfo->type)) {
+                switch (safe_cast<MetroTextureInfo::TextureType>(mTextureInfo->type)) {
                 case MetroTextureInfo::TextureType::Diffuse:
                     return "Diffuse";
                 case MetroTextureInfo::TextureType::Detail_diffuse:
@@ -90,33 +90,33 @@ namespace MetroEX {
         }
 
         property vec4 SurfaceXForm {
-            vec4 get() { return this->mTextureInfo->surf_xform; }
+            vec4 get() { return mTextureInfo->surf_xform; }
         }
 
         property uint32_t Format {
-            uint32_t get() { return this->mTextureInfo->format; }
+            uint32_t get() { return mTextureInfo->format; }
         }
 
         [Category("Size")]
         [Description("Texture Width in pixels")]
         property uint32_t Width {
-            uint32_t get() { return this->mTextureInfo->width; }
+            uint32_t get() { return mTextureInfo->width; }
         }
 
         [Category("Size")]
         [Description("Texture Height in pixels")]
         property uint32_t Height {
-            uint32_t get() { return this->mTextureInfo->height; }
+            uint32_t get() { return mTextureInfo->height; }
         };
 
         property bool Animated {
-            bool get() { return this->mTextureInfo->animated; }
+            bool get() { return mTextureInfo->animated; }
         };
 
         [Category("Common")]
         [Description("Texture real path")]
         property String^ RealPath {
-            String^ get() { return this->mRealPath; }
+            String^ get() { return mRealPath; }
         };
     };
 }

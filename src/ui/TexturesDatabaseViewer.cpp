@@ -50,9 +50,9 @@ namespace MetroEX {
         }
 
         NodeSorter^ sorter = gcnew NodeSorter();
-        this->SortNodesRecursively(this->mOriginalRootNode, sorter);
+        this->SortNodesRecursively(mOriginalRootNode, sorter);
 
-        this->mOriginalRootNode->Expand();
+        mOriginalRootNode->Expand();
 
         this->dataTree->EndUpdate();
 
@@ -83,7 +83,7 @@ namespace MetroEX {
 
         for (int i = 0; i < parent->Nodes->Count; i++) {
             if (parent->Nodes[i]->Nodes->Count > 0) {
-                SortNodesRecursively(parent->Nodes[i], sorter);
+                this->SortNodesRecursively(parent->Nodes[i], sorter);
             }
         }
     }
@@ -97,9 +97,9 @@ namespace MetroEX {
         this->dataTree->Nodes->Clear();
 
         if (String::IsNullOrWhiteSpace(this->filterText->Text)) {
-            this->dataTree->Nodes->Add(this->mOriginalRootNode);
+            this->dataTree->Nodes->Add(mOriginalRootNode);
         } else {
-            TreeNode^ root = safe_cast<TreeNode^>(this->mOriginalRootNode->Clone());
+            TreeNode^ root = safe_cast<TreeNode^>(mOriginalRootNode->Clone());
             this->FilterTreeView(root, this->filterText->Text);
             this->dataTree->Nodes->Add(root);
         }
@@ -133,7 +133,7 @@ namespace MetroEX {
     }
 
     void TexturesDatabaseViewer::filterText_TextChanged(System::Object^ sender, System::EventArgs^ e) {
-        if (this->mDataProvider != nullptr) {
+        if (mDataProvider != nullptr) {
             this->filterTimer->Stop();
             this->filterTimer->Start();
         }
@@ -142,8 +142,8 @@ namespace MetroEX {
     void TexturesDatabaseViewer::dataTree_NodeMouseClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e) {
         if (e->Button != System::Windows::Forms::MouseButtons::Left || e->Node == nullptr || e->Node->Nodes->Count > 0) return;
 
-        if (this->mPropertiesViewer == nullptr) {
-            this->mPropertiesViewer = gcnew TexturePropertiesViewer();
+        if (mPropertiesViewer == nullptr) {
+            mPropertiesViewer = gcnew TexturePropertiesViewer();
         }
 
         const size_t index = safe_cast<size_t>(e->Node->Tag);
@@ -152,7 +152,7 @@ namespace MetroEX {
 
         mPropertiesViewer->SetTextureInfo(&texInfo);
         mPropertiesViewer->SetRealPath(realPath);
-        this->propertyGrid->SelectedObject = this->mPropertiesViewer;
+        this->propertyGrid->SelectedObject = mPropertiesViewer;
     }
 
     void TexturesDatabaseViewer::dataTree_NodeMouseDoubleClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e) {
@@ -161,15 +161,15 @@ namespace MetroEX {
         size_t index = safe_cast<size_t>(e->Node->Tag);
         String^ path = this->GetRealPath(index);
 
-        this->mMainForm->ResetTreeView();
-        if (!this->mMainForm->FindAndSelect("content\\textures\\" + path, this->mFileExtensions)) {
-            this->mMainForm->ShowErrorMessage("Couldn't find texture!");
+        mMainForm->ResetTreeView();
+        if (!mMainForm->FindAndSelect("content\\textures\\" + path, mFileExtensions)) {
+            mMainForm->ShowErrorMessage("Couldn't find texture!");
         }
     }
 
     String^ TexturesDatabaseViewer::GetRealPath(const size_t index) {
         const MetroTextureInfo& texInfo = mDataProvider->GetTextureInfo(index);
-        const CharString& sourceName = this->mDataProvider->GetSourceName(texInfo.name);
+        const CharString& sourceName = mDataProvider->GetSourceName(texInfo.name);
         return marshal_as<String^>(sourceName);
     }
 
