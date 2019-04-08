@@ -171,8 +171,12 @@
     <ClInclude Include="src\metro\MetroConfigNames.h">
       <Filter>src\metro</Filter>
     </ClInclude>
-    <ClInclude Include="src\ui\NodeSorter.h" />
-    <ClInclude Include="src\ui\TexturesDatabaseViewer.h" />
+    <ClInclude Include="src\ui\NodeSorter.h">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\TexturesDatabaseViewer.h">
+      <Filter>src\ui</Filter>
+    </ClInclude>
     <ClInclude Include="src\ui\TexturePropertiesViewer.h">
       <Filter>src\ui</Filter>
     </ClInclude>
