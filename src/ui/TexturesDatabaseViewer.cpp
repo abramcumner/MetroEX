@@ -12,7 +12,7 @@ static const int kImageIdxFolderOpen = 1;
 namespace MetroEX {
 
     void TexturesDatabaseViewer::FillWithData() {
-        if (this->mDataProvider == nullptr) {
+        if (mDataProvider == nullptr) {
             return;
         }
 
@@ -21,17 +21,16 @@ namespace MetroEX {
         this->dataTree->BeginUpdate();
         this->dataTree->Nodes->Clear();
 
-        this->mOriginalRootNode = this->dataTree->Nodes->Add("content");
-        this->mOriginalRootNode->ImageIndex = kImageIdxFolderClosed;
-        this->mOriginalRootNode->SelectedImageIndex = kImageIdxFolderClosed;
+        mOriginalRootNode = this->dataTree->Nodes->Add("content");
+        mOriginalRootNode->ImageIndex = kImageIdxFolderClosed;
+        mOriginalRootNode->SelectedImageIndex = kImageIdxFolderClosed;
 
-        MyArray<MetroTextureInfo>* pool = this->mDataProvider->GetPool();
-        for (size_t index = 0; index < pool->size(); index++) {
-            MetroTextureInfo* texInfo = &pool->at(index);
-            String^ name = marshal_as<String^>(texInfo->name);
+        for (size_t i = 0, end = mDataProvider->GetNumTextures(); i < end; ++i) {
+            const MetroTextureInfo& texInfo = mDataProvider->GetTextureInfo(i);
+            String^ name = marshal_as<String^>(texInfo.name);
             array<String^>^ parts = name->Split('\\');
 
-            TreeNode^ parentNode = this->mOriginalRootNode;
+            TreeNode^ parentNode = mOriginalRootNode;
             for (int i = 0; i < parts->Length - 1; i++) {
                 TreeNode^ foundNode = FindNode(parentNode, parts[i]);
 
@@ -45,7 +44,7 @@ namespace MetroEX {
             }
 
             TreeNode^ node = parentNode->Nodes->Add(parts[parts->Length - 1]);
-            node->Tag = index;
+            node->Tag = i;
             node->ImageIndex = kImageIdxFile;
             node->SelectedImageIndex = kImageIdxFile;
         }
@@ -147,12 +146,12 @@ namespace MetroEX {
             this->mPropertiesViewer = gcnew TexturePropertiesViewer();
         }
 
-        size_t index = safe_cast<size_t>(e->Node->Tag);
-        MetroTextureInfo* texInfo = &this->mDataProvider->GetPool()->at(index);
+        const size_t index = safe_cast<size_t>(e->Node->Tag);
+        const MetroTextureInfo& texInfo = mDataProvider->GetTextureInfo(index);
         String^ realPath = this->GetRealPath(index);
 
-        this->mPropertiesViewer->SetTextureInfo(texInfo);
-        this->mPropertiesViewer->SetRealPath(realPath);
+        mPropertiesViewer->SetTextureInfo(&texInfo);
+        mPropertiesViewer->SetRealPath(realPath);
         this->propertyGrid->SelectedObject = this->mPropertiesViewer;
     }
 
@@ -168,17 +167,10 @@ namespace MetroEX {
         }
     }
 
-    String^ TexturesDatabaseViewer::GetRealPath(size_t index) {
-        MetroTextureInfo* texInfo = &this->mDataProvider->GetPool()->at(index);
-        const HashString& alias = this->mDataProvider->GetAlias(HashString(texInfo->name));
-
-        if (alias.hash == 0) {
-            return marshal_as<String^>(texInfo->name);
-        } else {
-            const MetroTextureInfo* realTexInfo = this->mDataProvider->GetInfoByName(alias);
-
-            return marshal_as<String^>(realTexInfo->name);
-        }
+    String^ TexturesDatabaseViewer::GetRealPath(const size_t index) {
+        const MetroTextureInfo& texInfo = mDataProvider->GetTextureInfo(index);
+        const CharString& sourceName = this->mDataProvider->GetSourceName(texInfo.name);
+        return marshal_as<String^>(sourceName);
     }
 
     void TexturesDatabaseViewer::dataTree_AfterCollapse(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e) {

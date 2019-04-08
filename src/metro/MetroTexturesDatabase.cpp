@@ -202,10 +202,10 @@ const CharString& MetroTexturesDatabase::GetBumpName(const HashString& name) con
     return (mti == nullptr) ? emptyStr : mti->bump_name.str;
 }
 
-MyDict<HashString, MetroTextureInfo*>* MetroTexturesDatabase::GetDatabase() {
-    return &mDatabase;
+const size_t MetroTexturesDatabase::GetNumTextures() const {
+    return mPool.size();
 }
 
-MyArray<MetroTextureInfo>* MetroTexturesDatabase::GetPool() {
-    return &mPool;
+const MetroTextureInfo& MetroTexturesDatabase::GetTextureInfo(const size_t idx) const {
+    return mPool[idx];
 }

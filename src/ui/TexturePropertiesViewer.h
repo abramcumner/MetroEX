@@ -13,16 +13,16 @@ namespace MetroEX {
         TexturePropertiesViewer();
 
     private:
-        MetroTextureInfo* mTextureInfo;
+        const MetroTextureInfo* mTextureInfo;
         String^ mRealPath;
 
     public:
-        void SetTextureInfo(MetroTextureInfo* textureInfo) {
-            this->mTextureInfo = textureInfo;
+        void SetTextureInfo(const MetroTextureInfo* textureInfo) {
+            mTextureInfo = textureInfo;
         }
 
         void SetRealPath(String^ path) {
-            this->mRealPath = path;
+            mRealPath = path;
         }
 
         // [Category("Common")]
@@ -40,7 +40,13 @@ namespace MetroEX {
         }
 
         property String^ SourceName {
-            String^ get() { return marshal_as<String^>(this->mTextureInfo->source_name.str); }
+            String^ get() {
+                if (mTextureInfo->source_name.IsValidRef()) {
+                    return String::Empty;
+                } else {
+                    return marshal_as<String^>(mTextureInfo->source_name.str);
+                }
+            }
         }
 
         property vec4 SurfaceXForm {

@@ -112,18 +112,16 @@ namespace MetroEX {
             // 
             this->tableLayoutPanel1->ColumnCount = 1;
             this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Percent,
-                50)));
-            this->tableLayoutPanel1->ColumnStyles->Add((gcnew System::Windows::Forms::ColumnStyle(System::Windows::Forms::SizeType::Percent,
-                50)));
+                100)));
             this->tableLayoutPanel1->Controls->Add(this->filterText, 0, 0);
             this->tableLayoutPanel1->Controls->Add(this->dataTree, 0, 1);
             this->tableLayoutPanel1->Dock = System::Windows::Forms::DockStyle::Fill;
             this->tableLayoutPanel1->Location = System::Drawing::Point(0, 0);
             this->tableLayoutPanel1->Name = L"tableLayoutPanel1";
             this->tableLayoutPanel1->RowCount = 2;
-            this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 4.811716F)));
-            this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 95.18829F)));
-            this->tableLayoutPanel1->Size = System::Drawing::Size(315, 901);
+            this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Absolute, 22)));
+            this->tableLayoutPanel1->RowStyles->Add((gcnew System::Windows::Forms::RowStyle(System::Windows::Forms::SizeType::Percent, 100)));
+            this->tableLayoutPanel1->Size = System::Drawing::Size(315, 728);
             this->tableLayoutPanel1->TabIndex = 0;
             // 
             // filterText
@@ -138,9 +136,9 @@ namespace MetroEX {
             // dataTree
             // 
             this->dataTree->Dock = System::Windows::Forms::DockStyle::Fill;
-            this->dataTree->Location = System::Drawing::Point(3, 46);
+            this->dataTree->Location = System::Drawing::Point(3, 25);
             this->dataTree->Name = L"dataTree";
-            this->dataTree->Size = System::Drawing::Size(309, 852);
+            this->dataTree->Size = System::Drawing::Size(309, 700);
             this->dataTree->TabIndex = 1;
             this->dataTree->AfterCollapse += gcnew System::Windows::Forms::TreeViewEventHandler(this, &TexturesDatabaseViewer::dataTree_AfterCollapse);
             this->dataTree->AfterExpand += gcnew System::Windows::Forms::TreeViewEventHandler(this, &TexturesDatabaseViewer::dataTree_AfterExpand);
@@ -165,7 +163,7 @@ namespace MetroEX {
             // splitContainer1.Panel2
             // 
             this->splitContainer1->Panel2->Controls->Add(this->propertyGrid);
-            this->splitContainer1->Size = System::Drawing::Size(946, 901);
+            this->splitContainer1->Size = System::Drawing::Size(946, 728);
             this->splitContainer1->SplitterDistance = 315;
             this->splitContainer1->TabIndex = 1;
             // 
@@ -174,16 +172,17 @@ namespace MetroEX {
             this->propertyGrid->Dock = System::Windows::Forms::DockStyle::Fill;
             this->propertyGrid->Location = System::Drawing::Point(0, 0);
             this->propertyGrid->Name = L"propertyGrid";
-            this->propertyGrid->Size = System::Drawing::Size(627, 901);
+            this->propertyGrid->Size = System::Drawing::Size(627, 728);
             this->propertyGrid->TabIndex = 0;
             // 
             // TexturesDatabaseViewer
             // 
             this->AutoScaleDimensions = System::Drawing::SizeF(6, 13);
             this->AutoScaleMode = System::Windows::Forms::AutoScaleMode::Font;
-            this->ClientSize = System::Drawing::Size(946, 901);
+            this->ClientSize = System::Drawing::Size(946, 728);
             this->Controls->Add(this->splitContainer1);
             this->Name = L"TexturesDatabaseViewer";
+            this->StartPosition = System::Windows::Forms::FormStartPosition::CenterParent;
             this->Text = L"Textures Database Viewer";
             this->tableLayoutPanel1->ResumeLayout(false);
             this->tableLayoutPanel1->PerformLayout();
@@ -204,7 +203,7 @@ namespace MetroEX {
         MainForm^ mMainForm;
         array<String^>^ mFileExtensions;
         TexturePropertiesViewer^ mPropertiesViewer;
-        String^ GetRealPath(size_t index);
+        String^ GetRealPath(const size_t index);
         void filterTimer_Tick(System::Object^ sender, System::EventArgs^ e);
         void filterText_TextChanged(System::Object^ sender, System::EventArgs^ e);
         void dataTree_NodeMouseClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e);
