@@ -278,6 +278,7 @@ namespace MetroEX {
     void RenderPanel::SwitchMotion(const size_t idx) {
         if (mModel && mModel->IsAnimated()) {
             mCurrentMotion = mModel->GetMotion(idx);
+            mAnimation->time = 0.0f;
         }
     }
 
@@ -497,12 +498,12 @@ namespace MetroEX {
                     size_t textureIdx = mVFXReader->FindFile(texturePathBest);
 
                     if (textureIdx != MetroFile::InvalidFileIdx) {
-                        BytesArray content;
-                        if (mVFXReader->ExtractFile(textureIdx, content)) {
+                        MemStream stream = mVFXReader->ExtractFile(textureIdx);
+                        if (stream) {
                             const MetroFile& mf = mVFXReader->GetFile(textureIdx);
 
                             MetroTexture texture;
-                            if (texture.LoadFromData(content.data(), content.size(), mf.name)) {
+                            if (texture.LoadFromData(stream, mf.name)) {
                                 RenderTexture* rt = new RenderTexture;
                                 this->CreateRenderTexture(&texture, rt);
                                 mModelTextures->Add(texNameManaged, IntPtr(rt));
