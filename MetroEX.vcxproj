@@ -145,6 +145,7 @@
     <ClCompile Include="src\ui\SoundPanel.cpp" />
     <ClCompile Include="src\ui\TexturePropertiesViewer.cpp" />
     <ClCompile Include="src\ui\TexturesDatabaseViewer.cpp" />
+    <ClCompile Include="src\ui\TreeViewFilter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="libs\bc7enc16\bc7decomp.h" />
@@ -190,6 +191,9 @@
     <ClInclude Include="src\ui\TexturesDatabaseViewer.h">
       <FileType>CppForm</FileType>
     </ClInclude>
+    <ClInclude Include="src\ui\TreeViewFilter.h">
+      <FileType>CppControl</FileType>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="src\ui\ExtractionOptionsDgl.resx">
@@ -221,6 +225,9 @@
       <DependentUpon>src\ui\TexturesDatabaseViewer.h</DependentUpon>
       <LogicalName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MetroEX.TexturesDatabaseViewer.resources</LogicalName>
       <LogicalName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">MetroEX.TexturesDatabaseViewer.resources</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ui\TreeViewFilter.resx">
+      <DependentUpon>src\ui\TreeViewFilter.h</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

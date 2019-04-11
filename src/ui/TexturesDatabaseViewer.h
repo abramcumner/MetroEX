@@ -5,6 +5,7 @@
 #include "MainForm.h"
 #include "ui\TexturePropertiesViewer.h"
 #include "ui\NodeSorter.h"
+#include "ui\TreeViewFilter.h"
 
 namespace MetroEX {
 
@@ -62,17 +63,21 @@ namespace MetroEX {
     protected:
 
 
-    private: System::Windows::Forms::TableLayoutPanel^  tableLayoutPanel1;
-    private: System::Windows::Forms::TextBox^  filterText;
+
+
 
 
 
 
     private: System::Windows::Forms::Timer^  filterTimer;
-    private: System::Windows::Forms::TreeView^  dataTree;
+
 
     private: System::Windows::Forms::SplitContainer^  splitContainer1;
     private: System::Windows::Forms::PropertyGrid^  propertyGrid;
+    private: System::Windows::Forms::TableLayoutPanel^  tableLayoutPanel1;
+    private: System::Windows::Forms::TextBox^  filterText;
+    private: System::Windows::Forms::TreeView^  dataTree;
+    private: TreeViewFilter^  treeView;
 
     private: System::ComponentModel::IContainer^  components;
 
@@ -95,18 +100,41 @@ namespace MetroEX {
         void InitializeComponent(void)
         {
             this->components = (gcnew System::ComponentModel::Container());
+            this->filterTimer = (gcnew System::Windows::Forms::Timer(this->components));
+            this->splitContainer1 = (gcnew System::Windows::Forms::SplitContainer());
             this->tableLayoutPanel1 = (gcnew System::Windows::Forms::TableLayoutPanel());
             this->filterText = (gcnew System::Windows::Forms::TextBox());
             this->dataTree = (gcnew System::Windows::Forms::TreeView());
-            this->filterTimer = (gcnew System::Windows::Forms::Timer(this->components));
-            this->splitContainer1 = (gcnew System::Windows::Forms::SplitContainer());
+            this->treeView = (gcnew TreeViewFilter());
             this->propertyGrid = (gcnew System::Windows::Forms::PropertyGrid());
-            this->tableLayoutPanel1->SuspendLayout();
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->splitContainer1))->BeginInit();
             this->splitContainer1->Panel1->SuspendLayout();
             this->splitContainer1->Panel2->SuspendLayout();
             this->splitContainer1->SuspendLayout();
+            this->tableLayoutPanel1->SuspendLayout();
             this->SuspendLayout();
+            // 
+            // filterTimer
+            // 
+            this->filterTimer->Interval = 1000;
+            this->filterTimer->Tick += gcnew System::EventHandler(this, &TexturesDatabaseViewer::filterTimer_Tick);
+            // 
+            // splitContainer1
+            // 
+            this->splitContainer1->Dock = System::Windows::Forms::DockStyle::Fill;
+            this->splitContainer1->Location = System::Drawing::Point(0, 0);
+            this->splitContainer1->Name = L"splitContainer1";
+            // 
+            // splitContainer1.Panel1
+            // 
+            this->splitContainer1->Panel1->Controls->Add(this->tableLayoutPanel1);
+            // 
+            // splitContainer1.Panel2
+            // 
+            this->splitContainer1->Panel2->Controls->Add(this->propertyGrid);
+            this->splitContainer1->Size = System::Drawing::Size(946, 728);
+            this->splitContainer1->SplitterDistance = 315;
+            this->splitContainer1->TabIndex = 1;
             // 
             // tableLayoutPanel1
             // 
@@ -145,28 +173,6 @@ namespace MetroEX {
             this->dataTree->NodeMouseClick += gcnew System::Windows::Forms::TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::dataTree_NodeMouseClick);
             this->dataTree->NodeMouseDoubleClick += gcnew System::Windows::Forms::TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::dataTree_NodeMouseDoubleClick);
             // 
-            // filterTimer
-            // 
-            this->filterTimer->Interval = 1000;
-            this->filterTimer->Tick += gcnew System::EventHandler(this, &TexturesDatabaseViewer::filterTimer_Tick);
-            // 
-            // splitContainer1
-            // 
-            this->splitContainer1->Dock = System::Windows::Forms::DockStyle::Fill;
-            this->splitContainer1->Location = System::Drawing::Point(0, 0);
-            this->splitContainer1->Name = L"splitContainer1";
-            // 
-            // splitContainer1.Panel1
-            // 
-            this->splitContainer1->Panel1->Controls->Add(this->tableLayoutPanel1);
-            // 
-            // splitContainer1.Panel2
-            // 
-            this->splitContainer1->Panel2->Controls->Add(this->propertyGrid);
-            this->splitContainer1->Size = System::Drawing::Size(946, 728);
-            this->splitContainer1->SplitterDistance = 315;
-            this->splitContainer1->TabIndex = 1;
-            // 
             // propertyGrid
             // 
             this->propertyGrid->Dock = System::Windows::Forms::DockStyle::Fill;
@@ -184,12 +190,12 @@ namespace MetroEX {
             this->Name = L"TexturesDatabaseViewer";
             this->StartPosition = System::Windows::Forms::FormStartPosition::CenterParent;
             this->Text = L"Textures Database Viewer";
-            this->tableLayoutPanel1->ResumeLayout(false);
-            this->tableLayoutPanel1->PerformLayout();
             this->splitContainer1->Panel1->ResumeLayout(false);
             this->splitContainer1->Panel2->ResumeLayout(false);
             (cli::safe_cast<System::ComponentModel::ISupportInitialize^>(this->splitContainer1))->EndInit();
             this->splitContainer1->ResumeLayout(false);
+            this->tableLayoutPanel1->ResumeLayout(false);
+            this->tableLayoutPanel1->PerformLayout();
             this->ResumeLayout(false);
 
         }

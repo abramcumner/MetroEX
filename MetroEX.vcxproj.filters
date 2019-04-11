@@ -85,6 +85,9 @@
     <ClCompile Include="src\ui\TexturesDatabaseViewer.cpp">
       <Filter>src\ui</Filter>
     </ClCompile>
+    <ClCompile Include="src\ui\TreeViewFilter.cpp">
+      <Filter>src\ui</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\ui\RenderPanel.h">
@@ -178,6 +181,9 @@
       <Filter>src\ui</Filter>
     </ClInclude>
     <ClInclude Include="src\ui\TexturePropertiesViewer.h">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\TreeViewFilter.h">
       <Filter>src\ui</Filter>
     </ClInclude>
   </ItemGroup>
