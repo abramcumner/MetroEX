@@ -1,8 +1,6 @@
 #pragma once
 #include "MetroTypes.h"
 
-class VFXReader;
-class MetroTexturesDatabase;
 class MetroSkeleton;
 class MetroMotion;
 
@@ -11,9 +9,9 @@ public:
     MetroModel();
     ~MetroModel();
 
-    bool                    LoadFromData(MemStream& stream, VFXReader* vfxReader, const size_t fileIdx);
-    bool                    SaveAsOBJ(const fs::path& filePath, VFXReader* vfxReader, MetroTexturesDatabase* database);
-    bool                    SaveAsFBX(const fs::path& filePath, VFXReader* vfxReader, MetroTexturesDatabase* database, const bool withAnims);
+    bool                    LoadFromData(MemStream& stream, const size_t fileIdx);
+    bool                    SaveAsOBJ(const fs::path& filePath);
+    bool                    SaveAsFBX(const fs::path& filePath, const bool withAnims);
 
     bool                    IsAnimated() const;
     const AABBox&           GetBBox() const;
@@ -25,6 +23,8 @@ public:
     const MetroSkeleton*    GetSkeleton() const;
     size_t                  GetNumMotions() const;
     const MetroMotion*      GetMotion(const size_t idx) const;
+
+    const CharString&       GetComment() const;
 
 private:
     void                    ReadSubChunks(MemStream& stream);
@@ -38,9 +38,9 @@ private:
     CharString              mSkeletonPath;
     MetroSkeleton*          mSkeleton;
     MyArray<MetroMotion*>   mMotions;
+    CharString              mComment;
 
     // these are temp pointers, invalid after loading
     MetroMesh*              mCurrentMesh;
-    VFXReader*              mVFXReader;
     size_t                  mThisFileIdx;
 };

@@ -1,22 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Drawing;
-using System.Data;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Runtime.InteropServices;
 
 namespace MetroEXControls {
     public partial class FilterableTreeView : UserControl {
-        #region WinAPI bindings
-        private const int EM_SETCUEBANNER = 0x1501;
-        [DllImport("user32.dll", CharSet = CharSet.Auto)]
-        private static extern Int32 SendMessage(IntPtr hWnd, int msg, int wParam, [MarshalAs(UnmanagedType.LPWStr)]string lParam);
-        #endregion
-
+        public string FilterPlaceholder { get; set; } = "Search here...";
         public int FilterTimeout { get; set; } = 1000;
         public TreeView TreeView { get { return this.treeView; } }
         public TextBox FilterTextBox { get { return this.filterTextBox; } }
@@ -30,7 +18,7 @@ namespace MetroEXControls {
             InitializeComponent();
 
             //#NOTE_SK: set placeholder text for better and cooler look ;)
-            SendMessage(FilterTextBox.Handle, EM_SETCUEBANNER, 0, "Search here...");
+            WinApi.SendMessage(FilterTextBox.Handle, WinApi.EM_SETCUEBANNER, 0, FilterPlaceholder);
 
             mTimer = new Timer();
             mTimer.Interval = FilterTimeout;
@@ -102,6 +90,66 @@ namespace MetroEXControls {
                 mTimer.Stop();
                 mTimer.Start();
             }
+        }
+
+        public bool FindAndSelect(string text, string[] extensions) {
+            if (mOriginalRootNodes == null) {
+                Initialize();
+            }
+
+            var textParts = text.Split('\\');
+
+            TreeNode node = null;
+            foreach(var rootNode in mOriginalRootNodes) {
+                TreeNode foundNode = null;
+
+                var nodeToSearch = rootNode;
+                for (int i = 0; i < textParts.Length; i++) {
+                    foundNode = this.FindNode(nodeToSearch, textParts[i]);
+
+                    if (i == textParts.Length - 1) {
+                        if(extensions != null) {
+                            for (int j = 0; j < extensions.Length; j++) {
+                                foundNode = this.FindNode(nodeToSearch, textParts[i] + extensions[j]);
+
+                                if (foundNode != null) {
+                                    break;
+                                }
+                            }
+                        }
+                    } else if(foundNode != null) {
+                        foundNode.Expand();
+                    }
+
+                    nodeToSearch = foundNode;
+                }
+
+                if(foundNode != null)
+                {
+                    node = foundNode;
+                    break;
+                }
+            }
+
+            if (node != null) {
+                this.TreeView.SelectedNode = node;
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private TreeNode FindNode(TreeNode parent, string text) {
+            var term = text.ToUpper();
+
+            for (int i = 0; i < parent.Nodes.Count; i++) {
+                if (parent.Nodes[i].Text.ToUpper() == term) {
+                    return parent.Nodes[i];
+                }
+            }
+
+            return null;
         }
     }
 }

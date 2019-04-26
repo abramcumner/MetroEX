@@ -22,6 +22,7 @@ using MyArray = std::vector<T>;
 template <typename K, typename T>
 using MyDict = std::unordered_map<K, T>;
 using CharString = std::string;
+using WideString = std::wstring;
 using StringArray = MyArray<CharString>;
 using BytesArray = MyArray<uint8_t>;
 
@@ -342,6 +343,19 @@ struct Bitset256 {
         (ptr) = nullptr;    \
     }
 #endif
+
+template <typename T>
+class Singleton {
+protected:
+    Singleton() {}
+    ~Singleton() {}
+
+public:
+    static T& Get() {
+        static T _instance;
+        return _instance;
+    }
+};
 
 #include "log.h"
 

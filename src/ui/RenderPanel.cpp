@@ -20,8 +20,7 @@
 #include "shaders/CubemapViewerVS.hlsl.h"
 #include "shaders/CubemapViewerPS.hlsl.h"
 
-// String to std::string wrapper
-#include <msclr/marshal_cppstd.h>
+#include "UIHelpers.h"
 
 namespace MetroEX {
 
@@ -44,8 +43,6 @@ namespace MetroEX {
         , mModelTextures(nullptr)
         // model viewer stuff
         , mModel(nullptr)
-        , mVFXReader(nullptr)
-        , mDatabase(nullptr)
         // animation
         , mAnimation(nullptr)
         , mAnimTimer(nullptr)
@@ -241,16 +238,13 @@ namespace MetroEX {
         return true;
     }
 
-    void RenderPanel::SetModel(MetroModel* model, VFXReader* vfxReader, MetroTexturesDatabase* database) {
+    void RenderPanel::SetModel(MetroModel* model) {
         mCubemap = nullptr;
 
         if (mModel != model) {
             MySafeDelete(mModel);
 
             mModel = model;
-            mVFXReader = vfxReader;
-            mDatabase = database;
-
             mCurrentMotion = nullptr;
 
             this->ResetAnimation();
@@ -476,7 +470,7 @@ namespace MetroEX {
         if (mCubemap) {
             this->CreateRenderTexture(mCubemap, mCubemapTexture);
             return;
-        } else if (!mModel || !mVFXReader) {
+        } else if (!mModel) {
             return;
         }
 
@@ -486,21 +480,21 @@ namespace MetroEX {
             RenderGeometry* rg = mModelGeometries[scast<int>(i)];
             if (rg) {
                 const CharString& textureName = mesh->materials.front();
-                const CharString& sourceName = mDatabase->GetSourceName(textureName);
+                const CharString& sourceName = MetroTexturesDatabase::Get().GetSourceName(textureName);
 
-                String^ texNameManaged = msclr::interop::marshal_as<String^>(textureName);
+                String^ texNameManaged = ToNetString(textureName);
 
                 const bool contains = mModelTextures->ContainsKey(texNameManaged);
                 if (!contains) {
                     CharString texturePath = CharString("content\\textures\\") + (sourceName.empty() ? textureName : sourceName);
 
                     CharString texturePathBest = texturePath + ".512";
-                    size_t textureIdx = mVFXReader->FindFile(texturePathBest);
+                    size_t textureIdx = VFXReader::Get().FindFile(texturePathBest);
 
                     if (textureIdx != MetroFile::InvalidFileIdx) {
-                        MemStream stream = mVFXReader->ExtractFile(textureIdx);
+                        MemStream stream = VFXReader::Get().ExtractFile(textureIdx);
                         if (stream) {
-                            const MetroFile& mf = mVFXReader->GetFile(textureIdx);
+                            const MetroFile& mf = VFXReader::Get().GetFile(textureIdx);
 
                             MetroTexture texture;
                             if (texture.LoadFromData(stream, mf.name)) {

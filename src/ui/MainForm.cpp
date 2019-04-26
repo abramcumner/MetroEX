@@ -5,7 +5,7 @@
 #include "metro/MetroSound.h"
 #include "metro/MetroSkeleton.h"
 #include "metro/MetroMotion.h"
-#include "metro/MetroPatchTool.h"
+#include "metro/MetroLocalization.h"
 
 #include <fstream>
 
@@ -15,11 +15,12 @@
 #include "ExtractionOptionsDgl.h"
 #include "AboutDlg.h"
 #include "TexturesDatabaseViewer.h"
-#include "ui\NodeSorter.h"
+#include "NodeSorter.h"
 
-// String to std::string wrapper
-#include <msclr/marshal_cppstd.h>
-using namespace msclr::interop;
+#include "ui/tools/DlgConvertTextures.h"
+#include "ui/tools/DlgCreateArchive.h"
+
+#include "UIHelpers.h"
 
 enum class eNodeEventType : size_t {
     Default,
@@ -37,6 +38,7 @@ static const int    kImageIdxTexture        = 6;
 static const int    kImageIdxMotion         = 7;
 static const int    kImageIdxSound          = 8;
 static const int    kImageIdxModel          = 9;
+static const int    kImageIdxLocalization   = 10;
 
 static const size_t kFileIdxMask            = size_t(~0) >> 1;
 static const size_t kFolderSortedFlag       = size_t(1) << ((sizeof(size_t) * 8) - 1);
@@ -54,18 +56,10 @@ namespace MetroEX {
         }
     };
 
-    String^ PathToString(const fs::path& p) {
-        return marshal_as<String^>(p.wstring());
-    }
-
-    fs::path StringToPath(String^ s) {
-        return marshal_as<std::wstring>(s);
-    }
-
     static FileType DetectFileType(const MetroFile& mf) {
         FileType result = FileType::Unknown;
 
-        String^ name = marshal_as<String^>(mf.name.c_str());
+        String^ name = ToNetString(mf.name.c_str());
 
         if (name->EndsWith(L".dds") ||
             name->EndsWith(L".512") ||
@@ -82,6 +76,8 @@ namespace MetroEX {
             result = FileType::Sound;
         } else if (name->EndsWith(L"lightmaps")) {
             result = FileType::Level;
+        } else if (name->EndsWith(L".lng")) {
+            result = FileType::Localization;
         }
 
         return result;
@@ -139,6 +135,11 @@ namespace MetroEX {
                 Node->ImageIndex = kImageIdxSound;
                 Node->SelectedImageIndex = kImageIdxSound;
             } break;
+
+            case FileType::Localization: {
+                Node->ImageIndex = kImageIdxLocalization;
+                Node->SelectedImageIndex = kImageIdxLocalization;
+            } break;
         }
     }
 
@@ -170,6 +171,14 @@ namespace MetroEX {
         mSoundPanel->Size = System::Drawing::Size(528, 386);
 
 
+        mLocalizationPanel = gcnew LocalizationPanel();
+        this->pnlViewers->Controls->Add(mLocalizationPanel);
+        mLocalizationPanel->Dock = System::Windows::Forms::DockStyle::Fill;
+        mLocalizationPanel->Location = System::Drawing::Point(0, 0);
+        mLocalizationPanel->Name = L"mLocalizationPanel";
+        mLocalizationPanel->Size = System::Drawing::Size(528, 386);
+
+
         mRenderPanel = gcnew RenderPanel();
         this->pnlViewers->Controls->Add(mRenderPanel);
         mRenderPanel->Dock = System::Windows::Forms::DockStyle::Fill;
@@ -178,8 +187,27 @@ namespace MetroEX {
         mRenderPanel->Size = System::Drawing::Size(528, 386);
 
         if (!mRenderPanel->InitGraphics()) {
-            this->ShowErrorMessage("Failed to initialize DirectX 11 graphics!\n3D viewer will be unavailable.");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to initialize DirectX 11 graphics!\n3D viewer will be unavailable.");
         }
+
+        // Create info panels
+        mImageInfoPanel = gcnew MetroEXControls::ImageInfoPanel();
+        this->pnlMetaProps->Controls->Add(this->mImageInfoPanel);
+        mImageInfoPanel->Dock = System::Windows::Forms::DockStyle::None;
+        mImageInfoPanel->Location = System::Drawing::Point(0, 0);
+        mImageInfoPanel->Name = L"mImageInfoPanel";
+        mImageInfoPanel->Size = System::Drawing::Size(481, 72);
+
+        mModelInfoPanel = gcnew MetroEXControls::ModelInfoPanel();
+        this->pnlMetaProps->Controls->Add(this->mModelInfoPanel);
+        mModelInfoPanel->Dock = System::Windows::Forms::DockStyle::None;
+        mModelInfoPanel->Location = System::Drawing::Point(0, 0);
+        mModelInfoPanel->Name = L"mModelInfoPanel";
+        mModelInfoPanel->Size = System::Drawing::Size(481, 72);
+        mModelInfoPanel->OnMotionsListSelectionChanged += gcnew MetroEXControls::ModelInfoPanel::OnListSelectionChanged(this, &MainForm::lstMdlPropMotions_SelectedIndexChanged);
+        mModelInfoPanel->OnPlayButtonClicked += gcnew MetroEXControls::ModelInfoPanel::OnButtonClicked(this, &MainForm::btnMdlPropPlayStopAnim_Click);
+        mModelInfoPanel->OnInfoButtonClicked += gcnew MetroEXControls::ModelInfoPanel::OnButtonClicked(this, &MainForm::btnModelInfo_Click);
+        ////
 
         this->SwitchViewPanel(PanelType::Texture);
         this->SwitchInfoPanel(PanelType::Sound);
@@ -193,18 +221,11 @@ namespace MetroEX {
         ofd.FilterIndex = 0;
         ofd.RestoreDirectory = true;
         if (ofd.ShowDialog(this) == System::Windows::Forms::DialogResult::OK) {
-            if (mVFXReader) {
-                delete mVFXReader;
-            }
-
             System::Windows::Forms::Cursor::Current = System::Windows::Forms::Cursors::WaitCursor;
 
-            mVFXReader = new VFXReader();
-            if (mVFXReader->LoadFromFile(StringToPath(ofd.FileName))) {
-                MetroTexturesDatabase* texDb;
+            if (VFXReader::Get().LoadFromFile(StringToPath(ofd.FileName))) {
                 MetroConfigsDatabase* cfgDb;
-                LoadDatabasesFromFile(mVFXReader, texDb, cfgDb);
-                mTexturesDatabase = texDb;
+                LoadDatabasesFromFile(cfgDb);
                 mConfigsDatabase = cfgDb;
 
                 this->UpdateFilesList();
@@ -230,22 +251,18 @@ namespace MetroEX {
     }
 
     void MainForm::toolBtnTexturesDatabase_Click(System::Object^ sender, System::EventArgs^ e) {
-        if (mTexturesDatabase == nullptr) {
-            return;
+        if (MetroTexturesDatabase::Get().Good()) {
+            TexturesDatabaseViewer wnd(this, this->imageListMain);
+            wnd.Icon = this->Icon;
+            wnd.ShowDialog(this);
         }
-
-        TexturesDatabaseViewer wnd(this, this->mTexturesDatabase, this->imageListMain);
-
-        wnd.Icon = this->Icon;
-        wnd.ShowDialog(this);
     }
 
     // treeview
     void MainForm::ResetTreeView() {
         if (this->filterableTreeView->TreeView == nullptr ||
             this->filterableTreeView->TreeView->Nodes->Count == 0 ||
-            this->filterableTreeView->TreeView->Nodes[0] == this->mOriginalRootNode
-        ) {
+            this->filterableTreeView->TreeView->Nodes[0] == this->mOriginalRootNode) {
             return;
         }
 
@@ -258,58 +275,19 @@ namespace MetroEX {
     }
 
     bool MainForm::FindAndSelect(String^ text, array<String^>^ extensions) {
-        auto textParts = text->Split('\\');
-
-        TreeNode^ node = this->mOriginalRootNode;
-        TreeNode^ foundNode;
-        for (int i = 0; i < textParts->Length; i++) {
-            foundNode = this->FindNode(node, textParts[i]);
-
-            if (i == textParts->Length - 1 && extensions != nullptr) {
-                for (int j = 0; j < extensions->Length; j++) {
-                    foundNode = this->FindNode(node, textParts[i] + extensions[j]);
-
-                    if (foundNode != nullptr) {
-                        break;
-                    }
-                }
-            }
-
-            if (foundNode == nullptr) {
-                return false;
-            }
-
-            node = foundNode;
-        }
-
-        // assert(this->mOriginalRootNode == this->filterableTreeView->TreeView->Nodes[0]);
-
-        this->mSavedNode = node;
-        this->filterableTreeView->TreeView->SelectedNode = node;
-
-        return true;
-    }
-
-    TreeNode^ MainForm::FindNode(TreeNode^ parent, String^ text) {
-        String^ term = text->ToUpper();
-
-        for (int i = 0; i < parent->Nodes->Count; i++) {
-            if (parent->Nodes[i]->Text->ToUpper() == term) {
-                return parent->Nodes[i];
-            }
-        }
-
-        return nullptr;
+        return this->filterableTreeView->FindAndSelect(text, extensions);
     }
 
     void MainForm::filterableTreeView_AfterSelect(System::Object^, System::Windows::Forms::TreeViewEventArgs^ e) {
-        TreeNode^ node = e->Node != nullptr ? e->Node : this->mSavedNode;
+        if (e->Node == nullptr) {
+            return;
+        }
 
-        FileTagData^ fileData = safe_cast<FileTagData^>(node->Tag);
+        FileTagData^ fileData = safe_cast<FileTagData^>(e->Node->Tag);
         const size_t fileIdx = fileData->fileIdx & kFileIdxMask;
         const bool isSubFile = fileData->subFileIdx != kInvalidValue;
 
-        if (mVFXReader) {
+        if (VFXReader::Get().Good()) {
             if (isSubFile) {
                 const MetroConfigsDatabase::ConfigInfo& ci = mConfigsDatabase->GetFileByIdx(fileData->subFileIdx);
 
@@ -318,7 +296,7 @@ namespace MetroEX {
                 this->statusLabel3->Text = ci.offset.ToString();
                 this->statusLabel4->Text = ci.length.ToString();
             } else {
-                const MetroFile& mf = mVFXReader->GetFile(fileIdx);
+                const MetroFile& mf = VFXReader::Get().GetFile(fileIdx);
                 if (mf.IsFile()) {
                     this->statusLabel1->Text = mf.pakIdx.ToString();
                     this->statusLabel2->Text = mf.offset.ToString();
@@ -341,7 +319,11 @@ namespace MetroEX {
     }
 
     void MainForm::filterableTreeView_AfterExpand(System::Object^, System::Windows::Forms::TreeViewEventArgs^ e) {
-        TreeNode^ node = e->Node != nullptr ? e->Node : this->mSavedNode;
+        TreeNode^ node = e->Node;
+
+        if (node == nullptr) {
+            return;
+        }
 
         UpdateNodeIcon(node, eNodeEventType::Open);
 
@@ -381,7 +363,7 @@ namespace MetroEX {
             const bool isSubFile = fileData->subFileIdx != kInvalidValue;
 
             const size_t fileIdx = fileData->fileIdx & kFileIdxMask;
-            const MetroFile& mf = mVFXReader->GetFile(fileIdx);
+            const MetroFile& mf = VFXReader::Get().GetFile(fileIdx);
 
             const FileType fileType = isSubFile ? fileData->fileType : DetectFileType(mf);
 
@@ -406,13 +388,17 @@ namespace MetroEX {
                         this->ctxMenuExportSound->Show(this->filterableTreeView->TreeView, e->X, e->Y);
                     } break;
 
+                    case FileType::Localization: {
+                        this->ctxMenuExportLocalization->Show(this->filterableTreeView->TreeView, e->X, e->Y);
+                    } break;
+
                     case FileType::Bin: {
                         if (isSubFile) {
                             const MetroConfigsDatabase::ConfigInfo& ci = mConfigsDatabase->GetFileByIdx(fileData->subFileIdx);
 
                             mExtractionCtx->customOffset = ci.offset;
                             mExtractionCtx->customLength = ci.length;
-                            mExtractionCtx->customFileName = marshal_as<CharString>(e->Node->Text);
+                            mExtractionCtx->customFileName = NetToCharStr(e->Node->Text);
                             this->ctxMenuExportBin->Show(this->filterableTreeView->TreeView, e->X, e->Y);
                         } else {
                             this->ctxMenuExportRaw->Show(this->filterableTreeView->TreeView, e->X, e->Y);
@@ -435,7 +421,7 @@ namespace MetroEX {
     //
     void MainForm::extractFileToolStripMenuItem_Click(System::Object^, System::EventArgs^) {
         if (!this->ExtractFile(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract file!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract file!");
         }
     }
 
@@ -444,7 +430,7 @@ namespace MetroEX {
         mExtractionCtx->txUseBC3 = false;
 
         if (!this->ExtractTexture(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract texture!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract texture!");
         }
     }
 
@@ -453,7 +439,7 @@ namespace MetroEX {
         mExtractionCtx->txUseBC3 = true;
 
         if (!this->ExtractTexture(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract texture!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract texture!");
         }
     }
 
@@ -461,7 +447,7 @@ namespace MetroEX {
         mExtractionCtx->txSaveAsTga = true;
 
         if (!this->ExtractTexture(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract texture!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract texture!");
         }
     }
 
@@ -469,7 +455,7 @@ namespace MetroEX {
         mExtractionCtx->txSaveAsPng = true;
 
         if (!this->ExtractTexture(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract texture!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract texture!");
         }
     }
 
@@ -477,46 +463,52 @@ namespace MetroEX {
         mExtractionCtx->mdlSaveAsObj = true;
 
         if (!this->ExtractModel(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract model!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract model!");
         }
     }
 
-    void MainForm::saveAsFBXToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e) {
+    void MainForm::saveAsFBXToolStripMenuItem_Click(System::Object^, System::EventArgs^) {
         mExtractionCtx->mdlSaveAsFbx = true;
         mExtractionCtx->mdlSaveWithAnims = true;
 
         if (!this->ExtractModel(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract model!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract model!");
         }
     }
 
-    void MainForm::saveAsOGGToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e) {
+    void MainForm::saveAsOGGToolStripMenuItem_Click(System::Object^, System::EventArgs^) {
         mExtractionCtx->sndSaveAsOgg = true;
 
         if (!this->ExtractSound(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract sound!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract sound!");
         }
     }
 
-    void MainForm::saveAsWAVToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e) {
+    void MainForm::saveAsWAVToolStripMenuItem_Click(System::Object^, System::EventArgs^) {
         mExtractionCtx->sndSaveAsWav = true;
 
         if (!this->ExtractSound(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract sound!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract sound!");
         }
     }
 
-    void MainForm::extractBinRootToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e) {
+    void MainForm::saveAsExcel2003XMLToolStripMenuItem_Click(System::Object^, System::EventArgs^) {
+        if (!this->ExtractLocalization(*mExtractionCtx, fs::path())) {
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract localization!");
+        }
+    }
+
+    void MainForm::extractBinRootToolStripMenuItem_Click(System::Object^, System::EventArgs^) {
         mExtractionCtx->customOffset = kInvalidValue;
         mExtractionCtx->customLength = kInvalidValue;
         mExtractionCtx->customFileName = "";
 
-        this->extractFileToolStripMenuItem_Click(sender, e);
+        this->extractFileToolStripMenuItem_Click(nullptr, nullptr);
     }
 
-    void MainForm::extractBinChunkToolStripMenuItem_Click(System::Object^  sender, System::EventArgs^  e) {
+    void MainForm::extractBinChunkToolStripMenuItem_Click(System::Object^, System::EventArgs^) {
         if (!this->ExtractFile(*mExtractionCtx, fs::path())) {
-            this->ShowErrorMessage("Failed to extract bin file chunk!");
+            MetroEX::ShowErrorMessageBox(this, L"Failed to extract bin file chunk!");
         }
     }
 
@@ -525,7 +517,7 @@ namespace MetroEX {
         if (!folderPath.empty()) {
             mExtractionCtx->batch = true;
             mExtractionCtx->raw = true;
-            mExtractionCtx->numFilesTotal = mVFXReader->CountFilesInFolder(mExtractionCtx->fileIdx);
+            mExtractionCtx->numFilesTotal = VFXReader::Get().CountFilesInFolder(mExtractionCtx->fileIdx);
             mExtractionCtx->progress = 0;
 
             pin_ptr<IProgressDialog*> ipdPtr(&mExtractionProgressDlg);
@@ -568,7 +560,7 @@ namespace MetroEX {
                 mExtractionCtx->sndSaveAsOgg = dlgOptions.IsSoundsAsOgg();
                 mExtractionCtx->sndSaveAsWav = dlgOptions.IsSoundsAsWav();
 
-                mExtractionCtx->numFilesTotal = mVFXReader->CountFilesInFolder(mExtractionCtx->fileIdx);
+                mExtractionCtx->numFilesTotal = VFXReader::Get().CountFilesInFolder(mExtractionCtx->fileIdx);
                 mExtractionCtx->progress = 0;
 
                 pin_ptr<IProgressDialog*> ipdPtr(&mExtractionProgressDlg);
@@ -587,23 +579,17 @@ namespace MetroEX {
         }
     }
 
-    void MainForm::ShowErrorMessage(String^ message) {
-        System::Windows::Forms::MessageBoxButtons buttons = System::Windows::Forms::MessageBoxButtons::OK;
-        System::Windows::Forms::MessageBoxIcon mbicon = System::Windows::Forms::MessageBoxIcon::Error;
-        System::Windows::Forms::MessageBox::Show(message, this->Text, buttons, mbicon);
-    }
-
     void MainForm::UpdateFilesList() {
         this->filterableTreeView->TreeView->BeginUpdate();
         this->filterableTreeView->TreeView->Nodes->Clear();
 
-        if (mVFXReader) {
+        if (VFXReader::Get().Good()) {
             this->filterableTreeView->FilterTextBox->Text = String::Empty;
 
             // Get idx of config.bin
-            const size_t configBinIdx = mVFXReader->FindFile("content\\config.bin");
+            const size_t configBinIdx = VFXReader::Get().FindFile("content\\config.bin");
 
-            String^ rootName = marshal_as<String^>(mVFXReader->GetSelfName());
+            String^ rootName = ToNetString(VFXReader::Get().GetSelfName());
             TreeNode^ rootNode = this->filterableTreeView->TreeView->Nodes->Add(rootName);
             size_t rootIdx = 0;
 
@@ -612,13 +598,13 @@ namespace MetroEX {
             rootNode->Tag = gcnew FileTagData(FileType::Folder, rootIdx, kInvalidValue);
             UpdateNodeIcon(rootNode);
 
-            const MetroFile& rootDir = mVFXReader->GetRootFolder();
+            const MetroFile& rootDir = VFXReader::Get().GetRootFolder();
             for (const size_t idx : rootDir) {
-                const MetroFile& mf = mVFXReader->GetFile(idx);
+                const MetroFile& mf = VFXReader::Get().GetFile(idx);
 
                 if (mf.IsFile()) {
                     const FileType fileType = DetectFileType(mf);
-                    TreeNode^ fileNode = rootNode->Nodes->Add(marshal_as<String^>(mf.name));
+                    TreeNode^ fileNode = rootNode->Nodes->Add(ToNetString(mf.name));
                     fileNode->Tag = gcnew FileTagData(fileType, idx, kInvalidValue);
                     UpdateNodeIcon(fileNode);
                 } else {
@@ -632,14 +618,14 @@ namespace MetroEX {
 
     void MainForm::AddFoldersRecursive(const MetroFile& dir, const size_t folderIdx, TreeNode^ rootItem, const size_t configBinIdx) {
         // Add root folder
-        TreeNode^ dirLeafNode = rootItem->Nodes->Add(marshal_as<String^>(dir.name));
+        TreeNode^ dirLeafNode = rootItem->Nodes->Add(ToNetString(dir.name));
 
         dirLeafNode->Tag = gcnew FileTagData(FileType::Folder, folderIdx, kInvalidValue);
         UpdateNodeIcon(dirLeafNode);
 
         // Add files and folders inside
         for (const size_t idx : dir) {
-            const MetroFile& mf = mVFXReader->GetFile(idx);
+            const MetroFile& mf = VFXReader::Get().GetFile(idx);
 
             if (mf.IsFile()) {
                 //==> Add file to list
@@ -649,7 +635,7 @@ namespace MetroEX {
                 } else {
                     //====> any other file
                     const FileType fileType = DetectFileType(mf);
-                    TreeNode^ fileNode = dirLeafNode->Nodes->Add(marshal_as<String^>(mf.name));
+                    TreeNode^ fileNode = dirLeafNode->Nodes->Add(ToNetString(mf.name));
                     fileNode->Tag = gcnew FileTagData(fileType, idx, kInvalidValue);
                     UpdateNodeIcon(fileNode);
                 }
@@ -661,7 +647,7 @@ namespace MetroEX {
     }
 
     void MainForm::AddBinaryArchive(const MetroFile& mf, const size_t fileIdx, TreeNode^ rootItem) {
-        TreeNode^ fileNode = rootItem->Nodes->Add(marshal_as<String^>(mf.name));
+        TreeNode^ fileNode = rootItem->Nodes->Add(ToNetString(mf.name));
         fileNode->Tag = gcnew FileTagData(FileType::BinArchive, fileIdx, kInvalidValue);
         UpdateNodeIcon(fileNode);
 
@@ -671,7 +657,7 @@ namespace MetroEX {
             const bool isNameDecrypted = !ci.nameStr.empty();
 
             String^ fileName = (isNameDecrypted ?
-                marshal_as<String^>(ci.nameStr) :
+                ToNetString(ci.nameStr) :
                 String::Format("unknCRC32_0x{0:X}.bin", ci.nameCRC)
             );
 
@@ -710,7 +696,7 @@ namespace MetroEX {
     }
 
     void MainForm::DetectFileAndShow(const size_t fileIdx) {
-        const MetroFile& mf = mVFXReader->GetFile(fileIdx);
+        const MetroFile& mf = VFXReader::Get().GetFile(fileIdx);
         if (!mf.IsFile()) {
             return;
         }
@@ -733,13 +719,17 @@ namespace MetroEX {
         //case FileType::Level: {
         //    this->ShowLevel(fileIdx);
         //} break;
+
+            case FileType::Localization: {
+                this->ShowLocalization(fileIdx);
+            } break;
         }
     }
 
     void MainForm::ShowTexture(const size_t fileIdx) {
-        const MetroFile& mf = mVFXReader->GetFile(fileIdx);
+        const MetroFile& mf = VFXReader::Get().GetFile(fileIdx);
 
-        MemStream stream = mVFXReader->ExtractFile(fileIdx);
+        MemStream stream = VFXReader::Get().ExtractFile(fileIdx);
         if (stream) {
             MetroTexture texture;
             if (texture.LoadFromData(stream, mf.name)) {
@@ -753,10 +743,10 @@ namespace MetroEX {
 
                 this->SwitchInfoPanel(PanelType::Texture);
 
-                this->lblImgPropCompression->Text = texture.IsCubemap() ? L"BC6H" : L"BC7";
-                this->lblImgPropWidth->Text = texture.GetWidth().ToString();
-                this->lblImgPropHeight->Text = texture.GetHeight().ToString();
-                this->lblImgPropMips->Text = texture.GetNumMips().ToString();
+                mImageInfoPanel->ImgPropCompressionText = texture.IsCubemap() ? L"BC6H" : L"BC7";;
+                mImageInfoPanel->ImgPropWidthText = texture.GetWidth().ToString();
+                mImageInfoPanel->ImgPropHeightText = texture.GetHeight().ToString();
+                mImageInfoPanel->ImgPropsMipsText = texture.GetNumMips().ToString();
             }
         }
     }
@@ -765,26 +755,26 @@ namespace MetroEX {
         this->SwitchViewPanel(PanelType::Model);
         this->SwitchInfoPanel(PanelType::Model);
 
-        const MetroFile& mf = mVFXReader->GetFile(fileIdx);
-        MemStream stream = mVFXReader->ExtractFile(fileIdx);
+        const MetroFile& mf = VFXReader::Get().GetFile(fileIdx);
+        MemStream stream = VFXReader::Get().ExtractFile(fileIdx);
         if (stream) {
             MetroModel* mdl = new MetroModel();
-            if (mdl->LoadFromData(stream, mVFXReader, fileIdx)) {
-                mRenderPanel->SetModel(mdl, mVFXReader, mTexturesDatabase);
+            if (mdl->LoadFromData(stream, fileIdx)) {
+                mRenderPanel->SetModel(mdl);
 
-                this->lstMdlPropMotions->Items->Clear();
+                mModelInfoPanel->ClearMotionsList();
                 if (mdl->IsAnimated()) {
                     const size_t numMotions = mdl->GetNumMotions();
                     for (size_t i = 0; i < numMotions; ++i) {
                         const MetroMotion* motion = mdl->GetMotion(i);
-                        this->lstMdlPropMotions->Items->Add(marshal_as<String^>(motion->GetName()));
+                        mModelInfoPanel->AddMotionToList(ToNetString(motion->GetName()));
                     }
 
-                    this->lblMdlPropType->Text = L"Animated";
-                    this->lblMdlPropJoints->Text = mdl->GetSkeleton()->GetNumBones().ToString();
+                    mModelInfoPanel->MdlPropTypeText = L"Animated";
+                    mModelInfoPanel->MdlPropJointsText = mdl->GetSkeleton()->GetNumBones().ToString();
                 } else {
-                    this->lblMdlPropType->Text = L"Static";
-                    this->lblMdlPropJoints->Text = L"0";
+                    mModelInfoPanel->MdlPropTypeText = L"Static";
+                    mModelInfoPanel->MdlPropJointsText = L"0";
                 }
 
                 size_t numVertices = 0, numTriangles = 0;
@@ -795,10 +785,10 @@ namespace MetroEX {
                     numTriangles += mesh->faces.size();
                 }
 
-                this->lblMdlPropVertices->Text = numVertices.ToString();
-                this->lblMdlPropTriangles->Text = numTriangles.ToString();
+                mModelInfoPanel->MdlPropVerticesText = numVertices.ToString();
+                mModelInfoPanel->MdlPropTrianglesText = numTriangles.ToString();
 
-                this->btnMdlPropPlayStopAnim->Text = L"Play";
+                mModelInfoPanel->MdlPropPlayStopAnimBtnText = L"Play";
 
                 if (mDlgModelInfo) {
                     mDlgModelInfo->SetModel(mdl);
@@ -810,12 +800,11 @@ namespace MetroEX {
     }
 
     void MainForm::ShowSound(const size_t fileIdx) {
-        mImagePanel->Hide();
-        mRenderPanel->Hide();
-        mSoundPanel->Show();
+        this->SwitchViewPanel(PanelType::Sound);
+        this->SwitchInfoPanel(PanelType::Sound);
 
-        const MetroFile& mf = mVFXReader->GetFile(fileIdx);
-        MemStream stream = mVFXReader->ExtractFile(fileIdx);
+        const MetroFile& mf = VFXReader::Get().GetFile(fileIdx);
+        MemStream stream = VFXReader::Get().ExtractFile(fileIdx);
         if (stream) {
             MetroSound* snd = new MetroSound();
             if (snd->LoadFromData(stream)) {
@@ -826,24 +815,48 @@ namespace MetroEX {
         }
     }
 
+    void MainForm::ShowLocalization(const size_t fileIdx) {
+        this->SwitchViewPanel(PanelType::Localization);
+        this->SwitchInfoPanel(PanelType::Localization);
+
+        const MetroFile& mf = VFXReader::Get().GetFile(fileIdx);
+        MemStream stream = VFXReader::Get().ExtractFile(fileIdx);
+        if (stream) {
+            MetroLocalization loc;
+            if (loc.LoadFromData(stream)) {
+                mLocalizationPanel->SetLocalizationTable(&loc);
+            }
+        }
+    }
+
     void MainForm::SwitchViewPanel(PanelType t) {
         switch (t) {
             case PanelType::Texture: {
                 mRenderPanel->Hide();
                 mSoundPanel->Hide();
+                mLocalizationPanel->Hide();
                 mImagePanel->Show();
             } break;
 
             case PanelType::Model: {
                 mImagePanel->Hide();
                 mSoundPanel->Hide();
+                mLocalizationPanel->Hide();
                 mRenderPanel->Show();
             } break;
 
             case PanelType::Sound: {
                 mImagePanel->Hide();
                 mRenderPanel->Hide();
+                mLocalizationPanel->Hide();
                 mSoundPanel->Show();
+            } break;
+
+            case PanelType::Localization: {
+                mImagePanel->Hide();
+                mRenderPanel->Hide();
+                mSoundPanel->Hide();
+                mLocalizationPanel->Show();
             } break;
         }
     }
@@ -851,29 +864,30 @@ namespace MetroEX {
     void MainForm::SwitchInfoPanel(PanelType t) {
         switch (t) {
             case PanelType::Texture: {
-                this->pnlMdlProps->Dock = System::Windows::Forms::DockStyle::None;
-                this->pnlMdlProps->Hide();
+                mModelInfoPanel->Dock = System::Windows::Forms::DockStyle::None;
+                mModelInfoPanel->Hide();
 
-                this->pnlImageProps->Location = System::Drawing::Point(0, 0);
-                this->pnlImageProps->Dock = System::Windows::Forms::DockStyle::Fill;
-                this->pnlImageProps->Show();
+                mImageInfoPanel->Location = System::Drawing::Point(0, 0);
+                mImageInfoPanel->Dock = System::Windows::Forms::DockStyle::Fill;
+                mImageInfoPanel->Show();
             } break;
 
             case PanelType::Model: {
-                this->pnlImageProps->Dock = System::Windows::Forms::DockStyle::None;
-                this->pnlImageProps->Hide();
+                mImageInfoPanel->Dock = System::Windows::Forms::DockStyle::None;
+                mImageInfoPanel->Hide();
 
-                this->pnlMdlProps->Location = System::Drawing::Point(0, 0);
-                this->pnlMdlProps->Dock = System::Windows::Forms::DockStyle::Fill;
-                this->pnlMdlProps->Show();
+                mModelInfoPanel->Location = System::Drawing::Point(0, 0);
+                mModelInfoPanel->Dock = System::Windows::Forms::DockStyle::Fill;
+                mModelInfoPanel->Show();
             } break;
 
-            case PanelType::Sound: {
-                this->pnlMdlProps->Dock = System::Windows::Forms::DockStyle::None;
-                this->pnlMdlProps->Hide();
+            case PanelType::Sound:
+            case PanelType::Localization: {
+                mModelInfoPanel->Dock = System::Windows::Forms::DockStyle::None;
+                mModelInfoPanel->Hide();
 
-                this->pnlImageProps->Dock = System::Windows::Forms::DockStyle::None;
-                this->pnlImageProps->Hide();
+                mImageInfoPanel->Dock = System::Windows::Forms::DockStyle::None;
+                mImageInfoPanel->Hide();
             } break;
         }
     }
@@ -918,6 +932,12 @@ namespace MetroEX {
                     name[name.size() - 1] = 'v';
                 }
             } break;
+
+            case FileType::Localization: {
+                name[name.size() - 3] = 'x';
+                name[name.size() - 2] = 'm';
+                name[name.size() - 1] = 'l';
+            } break;
         }
 
         return name;
@@ -927,18 +947,18 @@ namespace MetroEX {
         CharString textureName = CharString("content\\textures\\") + name;
 
         CharString textureNameSrc = textureName + ".2048";
-        size_t textureIdx = mVFXReader->FindFile(textureNameSrc);
+        size_t textureIdx = VFXReader::Get().FindFile(textureNameSrc);
         if (textureIdx == MetroFile::InvalidFileIdx) {
             textureNameSrc = textureName + ".1024";
-            textureIdx = mVFXReader->FindFile(textureNameSrc);
+            textureIdx = VFXReader::Get().FindFile(textureNameSrc);
         }
         if (textureIdx == MetroFile::InvalidFileIdx) {
             textureNameSrc = textureName + ".512";
-            textureIdx = mVFXReader->FindFile(textureNameSrc);
+            textureIdx = VFXReader::Get().FindFile(textureNameSrc);
         }
 
         if (textureIdx != MetroFile::InvalidFileIdx) {
-            const MetroFile& txMf = mVFXReader->GetFile(textureIdx);
+            const MetroFile& txMf = VFXReader::Get().GetFile(textureIdx);
             FileExtractionCtx tmpCtx = ctx;
             tmpCtx.type = FileType::Texture;
             tmpCtx.fileIdx = textureIdx;
@@ -954,10 +974,10 @@ namespace MetroEX {
     bool MainForm::ExtractFile(const FileExtractionCtx& ctx, const fs::path& outPath) {
         bool result = false;
 
-        const MetroFile& mf = mVFXReader->GetFile(ctx.fileIdx);
+        const MetroFile& mf = VFXReader::Get().GetFile(ctx.fileIdx);
         String^ name = ctx.customFileName.empty() ?
-            marshal_as<String^>(mf.name) :
-            marshal_as<String^>(ctx.customFileName);
+            ToNetString(mf.name) :
+            ToNetString(ctx.customFileName);
 
         fs::path resultPath = outPath;
         if (resultPath.empty()) {
@@ -976,7 +996,7 @@ namespace MetroEX {
         }
 
         if (!resultPath.empty()) {
-            MemStream stream = mVFXReader->ExtractFile(ctx.fileIdx);
+            MemStream stream = VFXReader::Get().ExtractFile(ctx.fileIdx);
             if (stream) {
                 std::ofstream file(resultPath, std::ofstream::binary);
                 if (file.good()) {
@@ -1007,7 +1027,7 @@ namespace MetroEX {
     bool MainForm::ExtractTexture(const FileExtractionCtx& ctx, const fs::path& outPath) {
         bool result = false;
 
-        const MetroFile& mf = mVFXReader->GetFile(ctx.fileIdx);
+        const MetroFile& mf = VFXReader::Get().GetFile(ctx.fileIdx);
 
         fs::path resultPath = outPath;
         if (resultPath.empty()) {
@@ -1029,7 +1049,7 @@ namespace MetroEX {
             SaveFileDialog sfd;
             sfd.Title = title;
             sfd.Filter = filter;
-            sfd.FileName = marshal_as<String^>(nameWithExt);
+            sfd.FileName = ToNetString(nameWithExt);
             sfd.RestoreDirectory = true;
             sfd.OverwritePrompt = true;
 
@@ -1041,7 +1061,7 @@ namespace MetroEX {
         }
 
         if (!resultPath.empty()) {
-            MemStream stream = mVFXReader->ExtractFile(ctx.fileIdx);
+            MemStream stream = VFXReader::Get().ExtractFile(ctx.fileIdx);
             if (stream) {
                 MetroTexture texture;
                 if (texture.LoadFromData(stream, mf.name)) {
@@ -1066,7 +1086,7 @@ namespace MetroEX {
     bool MainForm::ExtractModel(const FileExtractionCtx& ctx, const fs::path& outPath) {
         bool result = false;
 
-        const MetroFile& mf = mVFXReader->GetFile(ctx.fileIdx);
+        const MetroFile& mf = VFXReader::Get().GetFile(ctx.fileIdx);
 
         fs::path resultPath = outPath;
         if (resultPath.empty()) {
@@ -1085,7 +1105,7 @@ namespace MetroEX {
             SaveFileDialog sfd;
             sfd.Title = title;
             sfd.Filter = filter;
-            sfd.FileName = marshal_as<String^>(nameWithExt);
+            sfd.FileName = ToNetString(nameWithExt);
             sfd.RestoreDirectory = true;
             sfd.OverwritePrompt = true;
 
@@ -1097,14 +1117,14 @@ namespace MetroEX {
         }
 
         if (!resultPath.empty()) {
-            MemStream& stream = mVFXReader->ExtractFile(ctx.fileIdx);
+            MemStream& stream = VFXReader::Get().ExtractFile(ctx.fileIdx);
             if (stream) {
                 MetroModel mdl;
-                if (mdl.LoadFromData(stream, mVFXReader, ctx.fileIdx)) {
+                if (mdl.LoadFromData(stream, ctx.fileIdx)) {
                     if (ctx.mdlSaveAsObj) {
-                        mdl.SaveAsOBJ(resultPath, mVFXReader, mTexturesDatabase);
+                        mdl.SaveAsOBJ(resultPath);
                     } else {
-                        mdl.SaveAsFBX(resultPath, mVFXReader, mTexturesDatabase, ctx.mdlSaveWithAnims);
+                        mdl.SaveAsFBX(resultPath, ctx.mdlSaveWithAnims);
                     }
 
                     if (!ctx.batch) {
@@ -1114,8 +1134,8 @@ namespace MetroEX {
                             if (!mesh->materials.empty()) {
                                 const CharString& textureName = mesh->materials.front();
 
-                                const CharString& sourceName = mTexturesDatabase->GetSourceName(textureName);
-                                const CharString& bumpName = mTexturesDatabase->GetSourceName(textureName);
+                                const CharString& sourceName = MetroTexturesDatabase::Get().GetSourceName(textureName);
+                                const CharString& bumpName = MetroTexturesDatabase::Get().GetSourceName(textureName);
 
                                 this->TextureSaveHelper(folderPath, ctx, sourceName);
                                 if (!bumpName.empty()) {
@@ -1136,7 +1156,7 @@ namespace MetroEX {
     bool MainForm::ExtractSound(const FileExtractionCtx& ctx, const fs::path& outPath) {
         bool result = false;
 
-        const MetroFile& mf = mVFXReader->GetFile(ctx.fileIdx);
+        const MetroFile& mf = VFXReader::Get().GetFile(ctx.fileIdx);
 
         fs::path resultPath = outPath;
         if (resultPath.empty()) {
@@ -1155,7 +1175,7 @@ namespace MetroEX {
             SaveFileDialog sfd;
             sfd.Title = title;
             sfd.Filter = filter;
-            sfd.FileName = marshal_as<String^>(nameWithExt);
+            sfd.FileName = ToNetString(nameWithExt);
             sfd.RestoreDirectory = true;
             sfd.OverwritePrompt = true;
 
@@ -1167,7 +1187,7 @@ namespace MetroEX {
         }
 
         if (!resultPath.empty()) {
-            MemStream stream = mVFXReader->ExtractFile(ctx.fileIdx);
+            MemStream stream = VFXReader::Get().ExtractFile(ctx.fileIdx);
             if (stream) {
                 MetroSound sound;
                 if (sound.LoadFromData(stream)) {
@@ -1183,17 +1203,53 @@ namespace MetroEX {
         return result;
     }
 
+    bool MainForm::ExtractLocalization(const FileExtractionCtx& ctx, const fs::path& outPath) {
+        bool result = false;
+
+        const MetroFile& mf = VFXReader::Get().GetFile(ctx.fileIdx);
+
+        fs::path resultPath = outPath;
+        if (resultPath.empty()) {
+            CharString nameWithExt = this->MakeFileOutputName(mf, ctx);
+
+            SaveFileDialog sfd;
+            sfd.Title = L"Save Excel 2003 XML...";
+            sfd.Filter = L"Excel 2003 XML (*.xml)|*.xml";
+            sfd.FileName = ToNetString(nameWithExt);
+            sfd.RestoreDirectory = true;
+            sfd.OverwritePrompt = true;
+
+            if (sfd.ShowDialog(this) == System::Windows::Forms::DialogResult::OK) {
+                resultPath = StringToPath(sfd.FileName);
+            } else {
+                return true;
+            }
+        }
+
+        if (!resultPath.empty()) {
+            MemStream stream = VFXReader::Get().ExtractFile(ctx.fileIdx);
+            if (stream) {
+                MetroLocalization loc;
+                if (loc.LoadFromData(stream)) {
+                    result = loc.SaveToExcel2003(resultPath);
+                }
+            }
+        }
+
+        return result;
+    }
+
     bool MainForm::ExtractFolderComplete(const FileExtractionCtx& ctx, const fs::path& outPath) {
         bool result = false;
 
-        const MetroFile& folder = mVFXReader->GetFile(ctx.fileIdx);
+        const MetroFile& folder = VFXReader::Get().GetFile(ctx.fileIdx);
 
         fs::path curPath = outPath / folder.name;
         fs::create_directories(curPath);
 
         FileExtractionCtx tmpCtx = ctx;
         for (const size_t idx : folder) {
-            const MetroFile& mf = mVFXReader->GetFile(idx);
+            const MetroFile& mf = VFXReader::Get().GetFile(idx);
 
             tmpCtx.fileIdx = idx;
             tmpCtx.type = DetectFileType(mf);
@@ -1205,21 +1261,25 @@ namespace MetroEX {
                 } else {
                     fs::path filePath = curPath / this->MakeFileOutputName(mf, tmpCtx);
                     switch (tmpCtx.type) {
-                    case FileType::Texture: {
-                        this->ExtractTexture(tmpCtx, filePath);
-                    } break;
+                        case FileType::Texture: {
+                            this->ExtractTexture(tmpCtx, filePath);
+                        } break;
 
-                    case FileType::Model: {
-                        this->ExtractModel(tmpCtx, filePath);
-                    } break;
+                        case FileType::Model: {
+                            this->ExtractModel(tmpCtx, filePath);
+                        } break;
 
-                    case FileType::Sound: {
-                        this->ExtractSound(tmpCtx, filePath);
-                    } break;
+                        case FileType::Sound: {
+                            this->ExtractSound(tmpCtx, filePath);
+                        } break;
 
-                    default: {
-                        this->ExtractFile(tmpCtx, filePath);
-                    } break;
+                        case FileType::Localization: {
+                            this->ExtractLocalization(tmpCtx, filePath);
+                        } break;
+
+                        default: {
+                            this->ExtractFile(tmpCtx, filePath);
+                        } break;
                     }
                 }
 
@@ -1227,7 +1287,6 @@ namespace MetroEX {
                 if (mExtractionProgressDlg) {
                     mExtractionProgressDlg->SetProgress64(mExtractionCtx->progress, mExtractionCtx->numFilesTotal);
                 }
-
             } else {
                 this->ExtractFolderComplete(tmpCtx, curPath);
             }
@@ -1249,20 +1308,18 @@ namespace MetroEX {
 
     // property panels
     // model props
-    void MainForm::lstMdlPropMotions_SelectedIndexChanged(System::Object^, System::EventArgs^) {
-        const int idx = lstMdlPropMotions->SelectedIndex;
-        if (idx >= 0) {
-            mRenderPanel->SwitchMotion(idx);
+    void MainForm::lstMdlPropMotions_SelectedIndexChanged(int selection) {
+        if (selection >= 0) {
+            mRenderPanel->SwitchMotion(scast<size_t>(selection));
         }
     }
 
-    void MainForm::btnMdlPropPlayStopAnim_Click(System::Object^, System::EventArgs^) {
+    void MainForm::btnMdlPropPlayStopAnim_Click(System::Object^) {
         mRenderPanel->PlayAnim(!mRenderPanel->IsPlayingAnim());
-
-        this->btnMdlPropPlayStopAnim->Text = mRenderPanel->IsPlayingAnim() ? L"Stop" : L"Play";
+        mModelInfoPanel->MdlPropPlayStopAnimBtnText = mRenderPanel->IsPlayingAnim() ? L"Stop" : L"Play";
     }
 
-    void MainForm::btnModelInfo_Click(System::Object^ sender, System::EventArgs^ e) {
+    void MainForm::btnModelInfo_Click(System::Object^) {
         if (!mDlgModelInfo) {
             mDlgModelInfo = gcnew MetroEX::DlgModelInfo();
             mDlgModelInfo->Closed += gcnew System::EventHandler(this, &MetroEX::MainForm::OnDlgModelInfo_Closed);
@@ -1278,44 +1335,47 @@ namespace MetroEX {
     }
 
     // patch creation
-    void MainForm::toolBtnCreatePatch_Click(System::Object^ sender, System::EventArgs^ e) {
-        fs::path folderPath = ChooseFolderDialog::ChooseFolder("Choose content directory...", this->Handle.ToPointer());
-        if (!folderPath.empty()) {
-            SaveFileDialog sfd;
-            sfd.Title = L"Save patch archive...";
-            sfd.Filter = L"VFX files (*.vfx)|*.vfx";
-            sfd.FileName = L"patch_00.vfx";
-            sfd.RestoreDirectory = true;
-            sfd.OverwritePrompt = true;
-
-            if (sfd.ShowDialog(this) == System::Windows::Forms::DialogResult::OK) {
-                MetroPatchTool tool;
-                tool.CreatePatchFromFolder(folderPath, StringToPath(sfd.FileName));
-            }
-        }
+    void MainForm::archiveToolToolStripMenuItem_Click(System::Object^, System::EventArgs^) {
+        DlgCreateArchive dlg;
+        dlg.Icon = this->Icon;
+        dlg.ShowDialog(this);
     }
 
-    void MainForm::toolBtnConvertTexture_Click(System::Object^ sender, System::EventArgs^ e) {
+    void MainForm::texturesConverterToolStripMenuItem_Click(System::Object^, System::EventArgs^) {
+        DlgConvertTextures dlg;
+        dlg.Icon = this->Icon;
+        dlg.ShowDialog(this);
+    }
+
+    void MainForm::localizationConversionToolStripMenuItem_Click(System::Object^ sender, System::EventArgs^ e) {
         OpenFileDialog ofd;
-        ofd.Title = L"Open image file...";
-        ofd.Filter = L"Image files (*.tga;*.png)|*.tga;*.png";
+        ofd.Title = L"Choose localization file to convert";
+        ofd.Filter = L"Excel 2003 XML files (*.xml)|*.xml";
         ofd.FilterIndex = 0;
+        ofd.CheckFileExists = true;
         ofd.RestoreDirectory = true;
         if (ofd.ShowDialog(this) == System::Windows::Forms::DialogResult::OK) {
-            fs::path inputPath = StringToPath(ofd.FileName);
-            MetroTexture texture;
-            if (texture.LoadFromFile(inputPath)) {
+            fs::path srcPath = StringToPath(ofd.FileName);
+
+            MetroLocalization loc;
+            if (loc.LoadFromExcel2003(srcPath)) {
+                String^ fileName = PathToString(srcPath.stem().native() + L".lng");
+
                 SaveFileDialog sfd;
-                sfd.Title = L"Save file...";
-                sfd.Filter = L"All files (*.*)|*.*";
-                sfd.FileName = PathToString(inputPath.stem());
+                sfd.Title = L"Where to save Metro localization...";
+                sfd.Filter = L"Metro localization (*.lng)|*.lng";
+                sfd.FileName = fileName;
                 sfd.RestoreDirectory = true;
                 sfd.OverwritePrompt = true;
-
                 if (sfd.ShowDialog(this) == System::Windows::Forms::DialogResult::OK) {
-                    fs::path outPath = StringToPath(sfd.FileName);
-                    texture.SaveAsMetroTexture(outPath);
+                    if (loc.Save(StringToPath(sfd.FileName))) {
+                        MetroEX::ShowInfoMessageBox(this, L"Conversion succeeded!");
+                    } else {
+                        MetroEX::ShowErrorMessageBox(this, L"Failed to save " + sfd.FileName);
+                    }
                 }
+            } else {
+                MetroEX::ShowErrorMessageBox(this, L"Failed to open " + ofd.FileName);
             }
         }
     }

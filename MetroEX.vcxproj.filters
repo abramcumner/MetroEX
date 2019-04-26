@@ -88,9 +88,6 @@
     <ClCompile Include="libs\lz4\lz4hc.c">
       <Filter>libs\lz4</Filter>
     </ClCompile>
-    <ClCompile Include="src\metro\MetroPatchTool.cpp">
-      <Filter>src\metro</Filter>
-    </ClCompile>
     <ClCompile Include="src\ui\DlgModelInfo.cpp">
       <Filter>src\ui</Filter>
     </ClCompile>
@@ -105,6 +102,21 @@
     </ClCompile>
     <ClCompile Include="src\ui\TexturesDatabaseViewer.cpp">
       <Filter>src\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\tools\DlgConvertTextures.cpp">
+      <Filter>src\ui\tools</Filter>
+    </ClCompile>
+    <ClCompile Include="src\metro\MetroLocalization.cpp">
+      <Filter>src\metro</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\LocalizationPanel.cpp">
+      <Filter>src\ui</Filter>
+    </ClCompile>
+    <ClCompile Include="libs\pugixml\src\pugixml.cpp">
+      <Filter>libs\pugixml</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ui\tools\DlgCreateArchive.cpp">
+      <Filter>src\ui\tools</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -207,9 +219,6 @@
     <ClInclude Include="libs\lz4\lz4hc.h">
       <Filter>libs\lz4</Filter>
     </ClInclude>
-    <ClInclude Include="src\metro\MetroPatchTool.h">
-      <Filter>src\metro</Filter>
-    </ClInclude>
     <ClInclude Include="src\ui\DlgModelInfo.h">
       <Filter>src\ui</Filter>
     </ClInclude>
@@ -227,6 +236,24 @@
     </ClInclude>
     <ClInclude Include="src\ui\TexturesDatabaseViewer.h">
       <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\tools\DlgConvertTextures.h">
+      <Filter>src\ui\tools</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\UIHelpers.h">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="src\metro\MetroLocalization.h">
+      <Filter>src\metro</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\LocalizationPanel.h">
+      <Filter>src\ui</Filter>
+    </ClInclude>
+    <ClInclude Include="libs\pugixml\src\pugixml.hpp">
+      <Filter>libs\pugixml</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ui\tools\DlgCreateArchive.h">
+      <Filter>src\ui\tools</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -250,6 +277,15 @@
     </EmbeddedResource>
     <EmbeddedResource Include="src\ui\TexturesDatabaseViewer.resx">
       <Filter>src\ui</Filter>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ui\tools\DlgConvertTextures.resx">
+      <Filter>src\ui\tools</Filter>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ui\LocalizationPanel.resx">
+      <Filter>src\ui</Filter>
+    </EmbeddedResource>
+    <EmbeddedResource Include="src\ui\tools\DlgCreateArchive.resx">
+      <Filter>src\ui\tools</Filter>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
@@ -276,6 +312,12 @@
     </Filter>
     <Filter Include="src\shaders">
       <UniqueIdentifier>{cee2b1cb-62a2-4870-9f25-ebf41f6fd84b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\ui\tools">
+      <UniqueIdentifier>{32bfa4d5-f1d2-4858-a34c-b599aca57dc9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libs\pugixml">
+      <UniqueIdentifier>{fab92e35-1e7a-4049-8945-f2b8fedc8c1c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
