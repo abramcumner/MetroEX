@@ -1,30 +1,25 @@
-#include <msclr/marshal_cppstd.h>
 #include "TexturesDatabaseViewer.h"
-#include "ui\MainForm.h"
-#include "ui\NodeSorter.h"
+#include "ui/MainForm.h"
+#include "ui/NodeSorter.h"
+#include "ui/UIHelpers.h"
 
-using namespace msclr::interop;
 
 static const int kImageIdxFile = 6;
 static const int kImageIdxFolderClosed = 0;
 static const int kImageIdxFolderOpen = 1;
 
 namespace MetroEX {
-    TexturesDatabaseViewer::TexturesDatabaseViewer(MainForm^ form, MetroTexturesDatabase* data, System::Windows::Forms::ImageList^ imageList) {
+    TexturesDatabaseViewer::TexturesDatabaseViewer(MainForm^ form, System::Windows::Forms::ImageList^ imageList) {
         InitializeComponent();
-        //
-        //TODO: Add the constructor code here
-        //
 
-        mDataProvider = data;
         mMainForm = form;
         mOriginalRootNode = nullptr;
         mPropertiesViewer = nullptr;
 
         mFileExtensions = gcnew array<String^>(3);
-        mFileExtensions[0] = ".2048";
-        mFileExtensions[1] = ".1024";
-        mFileExtensions[2] = ".512";
+        mFileExtensions[0] = L".2048";
+        mFileExtensions[1] = L".1024";
+        mFileExtensions[2] = L".512";
 
         this->filterableTreeView->TreeView->ImageList = imageList;
 
@@ -41,7 +36,7 @@ namespace MetroEX {
     }
 
     void TexturesDatabaseViewer::FillWithData() {
-        if (mDataProvider == nullptr) {
+        if (!MetroTexturesDatabase::Get().Good()) {
             return;
         }
 
@@ -50,17 +45,17 @@ namespace MetroEX {
         this->filterableTreeView->TreeView->BeginUpdate();
         this->filterableTreeView->TreeView->Nodes->Clear();
 
-        mOriginalRootNode = this->filterableTreeView->TreeView->Nodes->Add("content");
+        mOriginalRootNode = this->filterableTreeView->TreeView->Nodes->Add(L"content");
         mOriginalRootNode->ImageIndex = kImageIdxFolderClosed;
         mOriginalRootNode->SelectedImageIndex = kImageIdxFolderClosed;
 
-        for (size_t i = 0, end = mDataProvider->GetNumTextures(); i < end; ++i) {
-            const MetroTextureInfo& texInfo = mDataProvider->GetTextureInfo(i);
-            String^ name = marshal_as<String^>(texInfo.name);
-            array<String^>^ parts = name->Split('\\');
+        for (size_t i = 0, end = MetroTexturesDatabase::Get().GetNumTextures(); i < end; ++i) {
+            const MetroTextureInfo& texInfo = MetroTexturesDatabase::Get().GetTextureInfo(i);
+            String^ name = ToNetString(texInfo.name);
+            array<String^>^ parts = name->Split(L'\\');
 
             TreeNode^ parentNode = mOriginalRootNode;
-            for (int i = 0; i < parts->Length - 1; i++) {
+            for (int i = 0; i < parts->Length - 1; ++i) {
                 TreeNode^ foundNode = FindNode(parentNode, parts[i]);
 
                 if (foundNode == nullptr) {
@@ -85,10 +80,11 @@ namespace MetroEX {
         mOriginalRootNode->Expand();
         this->filterableTreeView->TreeView->EndUpdate();
 
-        this->filterableTreeView->TreeView->NodeMouseClick += (gcnew TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::filterableTreeView_NodeMouseClick));
         this->filterableTreeView->TreeView->NodeMouseDoubleClick += (gcnew TreeNodeMouseClickEventHandler(this, &TexturesDatabaseViewer::filterableTreeView_NodeMouseDoubleClick));
         this->filterableTreeView->TreeView->AfterCollapse += (gcnew TreeViewEventHandler(this, &TexturesDatabaseViewer::filterableTreeView_AfterCollapse));
         this->filterableTreeView->TreeView->AfterExpand += (gcnew TreeViewEventHandler(this, &TexturesDatabaseViewer::filterableTreeView_AfterExpand));
+        this->filterableTreeView->TreeView->AfterSelect += (gcnew TreeViewEventHandler(this, &TexturesDatabaseViewer::filterableTreeView_AfterSelect));
+        this->filterableTreeView->TreeView->KeyUp += (gcnew KeyEventHandler(this, &TexturesDatabaseViewer::filterableTreeView_KeyUp));
 
         System::Windows::Forms::Cursor::Current = System::Windows::Forms::Cursors::Arrow;
     }
@@ -96,7 +92,7 @@ namespace MetroEX {
     TreeNode^ TexturesDatabaseViewer::FindNode(TreeNode^ parent, String^ text) {
         String^ term = text->ToUpper();
 
-        for (int i = 0; i < parent->Nodes->Count; i++) {
+        for (int i = 0; i < parent->Nodes->Count; ++i) {
             if (parent->Nodes[i]->Text->ToUpper() == term) {
                 return parent->Nodes[i];
             }
@@ -114,45 +110,23 @@ namespace MetroEX {
 
         delete nodes;
 
-        for (int i = 0; i < parent->Nodes->Count; i++) {
+        for (int i = 0; i < parent->Nodes->Count; ++i) {
             if (parent->Nodes[i]->Nodes->Count > 0) {
                 this->SortNodesRecursively(parent->Nodes[i], sorter);
             }
         }
     }
 
-    void TexturesDatabaseViewer::filterableTreeView_NodeMouseClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e) {
-        if (e->Button != System::Windows::Forms::MouseButtons::Left || e->Node == nullptr || e->Node->Nodes->Count > 0) return;
-
-        if (mPropertiesViewer == nullptr) {
-            mPropertiesViewer = gcnew TexturePropertiesViewer();
-        }
-
-        const size_t index = safe_cast<size_t>(e->Node->Tag);
-        const MetroTextureInfo& texInfo = mDataProvider->GetTextureInfo(index);
-        String^ realPath = this->GetRealPath(index);
-
-        mPropertiesViewer->SetTextureInfo(&texInfo);
-        mPropertiesViewer->SetRealPath(realPath);
-        this->propertyGrid->SelectedObject = mPropertiesViewer;
-    }
-
     void TexturesDatabaseViewer::filterableTreeView_NodeMouseDoubleClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e) {
-        if (e->Button != System::Windows::Forms::MouseButtons::Left || e->Node == nullptr || e->Node->Nodes->Count > 0) return;
-
-        size_t index = safe_cast<size_t>(e->Node->Tag);
-        String^ path = this->GetRealPath(index);
-
-        mMainForm->ResetTreeView();
-        if (!mMainForm->FindAndSelect("content\\textures\\" + path, mFileExtensions)) {
-            mMainForm->ShowErrorMessage("Couldn't find texture!");
+        if (e->Button == System::Windows::Forms::MouseButtons::Left) {
+            this->SelectTexture(e->Node);
         }
     }
 
     String^ TexturesDatabaseViewer::GetRealPath(const size_t index) {
-        const MetroTextureInfo& texInfo = mDataProvider->GetTextureInfo(index);
-        const CharString& sourceName = mDataProvider->GetSourceName(texInfo.name);
-        return marshal_as<String^>(sourceName);
+        const MetroTextureInfo& texInfo = MetroTexturesDatabase::Get().GetTextureInfo(index);
+        const CharString& sourceName = MetroTexturesDatabase::Get().GetSourceName(texInfo.name);
+        return ToNetString(sourceName);
     }
 
     void TexturesDatabaseViewer::filterableTreeView_AfterCollapse(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e) {
@@ -163,6 +137,48 @@ namespace MetroEX {
     void TexturesDatabaseViewer::filterableTreeView_AfterExpand(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e) {
         e->Node->ImageIndex = kImageIdxFolderOpen;
         e->Node->SelectedImageIndex = kImageIdxFolderOpen;
+    }
+
+    void TexturesDatabaseViewer::filterableTreeView_AfterSelect(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e) {
+        this->SelectNode(e->Node);
+    }
+
+    void TexturesDatabaseViewer::filterableTreeView_KeyUp(System::Object^ sender, System::Windows::Forms::KeyEventArgs^ e) {
+        if (e->KeyCode == Keys::Enter) {
+            SelectTexture(this->filterableTreeView->TreeView->SelectedNode);
+        }
+    }
+
+    bool TexturesDatabaseViewer::FindAndSelect(String^ text) {
+        return this->filterableTreeView->FindAndSelect(text, nullptr);
+    }
+
+    void TexturesDatabaseViewer::SelectNode(TreeNode^ node) {
+        if (node == nullptr || node->Tag == nullptr || node->Nodes->Count > 0) return;
+
+        if (mPropertiesViewer == nullptr) {
+            mPropertiesViewer = gcnew TexturePropertiesViewer();
+        }
+
+        const size_t index = safe_cast<size_t>(node->Tag);
+        const MetroTextureInfo& texInfo = MetroTexturesDatabase::Get().GetTextureInfo(index);
+        String^ realPath = this->GetRealPath(index);
+
+        mPropertiesViewer->SetTextureInfo(&texInfo);
+        mPropertiesViewer->SetRealPath(realPath);
+        this->propertyGrid->SelectedObject = mPropertiesViewer;
+    }
+
+    void TexturesDatabaseViewer::SelectTexture(TreeNode^ node) {
+        if (node == nullptr || node->Tag == nullptr || node->Nodes->Count > 0) return;
+
+        size_t index = safe_cast<size_t>(node->Tag);
+        String^ path = this->GetRealPath(index);
+
+        mMainForm->ResetTreeView();
+        if (!mMainForm->FindAndSelect(L"content\\textures\\" + path, mFileExtensions)) {
+            MetroEX::ShowErrorMessageBox(this, L"Couldn't find texture!");
+        }
     }
 
 }

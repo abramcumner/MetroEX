@@ -1,10 +1,10 @@
 #pragma once
 #include <msclr/marshal_cppstd.h>
 #include "mycommon.h"
-#include "metro\MetroTexturesDatabase.h"
+#include "metro/MetroTexturesDatabase.h"
 #include "MainForm.h"
-#include "ui\TexturePropertiesViewer.h"
-#include "ui\NodeSorter.h"
+#include "ui/TexturePropertiesViewer.h"
+#include "ui/NodeSorter.h"
 
 namespace MetroEX {
 
@@ -20,7 +20,7 @@ namespace MetroEX {
     /// </summary>
     public ref class TexturesDatabaseViewer : public System::Windows::Forms::Form {
     public:
-        TexturesDatabaseViewer(MainForm^ form, MetroTexturesDatabase* data, System::Windows::Forms::ImageList^ imageList);
+        TexturesDatabaseViewer(MainForm^ form, System::Windows::Forms::ImageList^ imageList);
 
     protected:
         ~TexturesDatabaseViewer();
@@ -29,6 +29,7 @@ namespace MetroEX {
     private: System::Windows::Forms::SplitContainer^  splitContainer1;
     private: System::Windows::Forms::PropertyGrid^  propertyGrid;
     private: MetroEXControls::FilterableTreeView^  filterableTreeView;
+
 
 
 
@@ -83,8 +84,10 @@ namespace MetroEX {
             // filterableTreeView
             // 
             this->filterableTreeView->Dock = System::Windows::Forms::DockStyle::Fill;
+            this->filterableTreeView->FilterPlaceholder = L"Search here...";
             this->filterableTreeView->FilterTimeout = 1000;
             this->filterableTreeView->Location = System::Drawing::Point(0, 0);
+            this->filterableTreeView->Margin = System::Windows::Forms::Padding(0);
             this->filterableTreeView->Name = L"filterableTreeView";
             this->filterableTreeView->Size = System::Drawing::Size(315, 728);
             this->filterableTreeView->TabIndex = 0;
@@ -119,16 +122,21 @@ namespace MetroEX {
     private:
         void FillWithData();
         TreeNode^ mOriginalRootNode;
-        MetroTexturesDatabase* mDataProvider;
         MainForm^ mMainForm;
         array<String^>^ mFileExtensions;
         TexturePropertiesViewer^ mPropertiesViewer;
         String^ GetRealPath(const size_t index);
         TreeNode^ FindNode(TreeNode^ parent, String^ text);
+        void SelectNode(TreeNode^ node);
+        void SelectTexture(TreeNode^ node);
         void SortNodesRecursively(TreeNode^ parent, NodeSorter^ sorter);
-        void filterableTreeView_NodeMouseClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e);
         void filterableTreeView_NodeMouseDoubleClick(System::Object^ sender, System::Windows::Forms::TreeNodeMouseClickEventArgs^ e);
         void filterableTreeView_AfterCollapse(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e);
         void filterableTreeView_AfterExpand(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e);
+        void filterableTreeView_AfterSelect(System::Object^ sender, System::Windows::Forms::TreeViewEventArgs^ e);
+        void filterableTreeView_KeyUp(System::Object^ sender, System::Windows::Forms::KeyEventArgs^ e);
+
+    public:
+        bool FindAndSelect(String^ text);
 };
 }
