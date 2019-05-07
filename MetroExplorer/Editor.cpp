@@ -27,3 +27,8 @@ void Editor::SetScript(const CharString& objName, const MyArray<Script>& scripts
     mObjName = objName;
     mScripts = scripts;
 }
+
+void Editor::SetSelObj(uobject * obj)
+{
+    mSelObj = obj;
+}

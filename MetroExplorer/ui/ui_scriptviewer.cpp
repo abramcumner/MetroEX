@@ -25,7 +25,7 @@ public:
     static BlockNode* Create(const ImVec2& pos, size_t idx, const Block& block) {
         BlockNode* node = (BlockNode*)ImGui::MemAlloc(sizeof(BlockNode));
         new (node) BlockNode();
-        std::string name = std::to_string(idx) + '@' + block.name;
+        std::string name = block.name + '@' + std::to_string(idx);
         std::string input, output;
         if (block.meta) {
             for (const auto& el : block.meta->input) {
@@ -55,6 +55,46 @@ public:
         return node;
     }
 };
+
+std::ostream& operator<<(std::ostream& s, Flags8 v) {
+    return s << (int)v.value;
+}
+
+std::ostream& operator<<(std::ostream& s, MetroTime v) {
+    return s << v.value;
+}
+
+std::ostream& operator<<(std::ostream& s, const AnimationString& v) {
+    return s << v.value;
+}
+
+std::ostream& operator<<(std::ostream& s, EntityLink v) {
+    return s << v.value;
+}
+
+std::ostream& operator<<(std::ostream& s, ColorU32 v) {
+    return s << v.value;
+}
+
+std::ostream& operator<<(std::ostream& s, color4f v) {
+    return s << '(' << v.r << ", " << v.g << ", " << v.b << ", " << v.a << ')';
+}
+
+std::ostream& operator<<(std::ostream& s, vec2 v) {
+    return s << '(' << v.x << ", " << v.y << ')';
+}
+
+std::ostream& operator<<(std::ostream& s, const U8Array& v) {
+    s << '(';
+    for (size_t i = 0; i != v.size(); i++)
+    {
+        if (i != 0)
+            s << ", ";
+        s << v[i];
+    }
+    s << ')';
+    return s;
+}
 
 struct ScriptViewerTool : public Tool {
     static Tool* create() {
@@ -96,9 +136,11 @@ struct ScriptViewerTool : public Tool {
 
         if (mBuf.empty()) {
             std::stringstream buf;
-            for (size_t i = 0; i != script.blocks.size(); i++) {
-                const auto& block = script.blocks[i];
-                buf << '[' << i << '@' << block.name << ']' << std::endl;
+            for (size_t i = 0; i != script.blocks.blocks.size(); i++) {
+                const auto& block = script.blocks.blocks[i];
+                buf << '[' << block.name << '@' << i << ']' << std::endl;
+                buf << "  posx = " << block.posx << std::endl;
+                buf << "  posy = " << block.posy << std::endl;
                 for (const auto& prop : block.params) {
                     buf << "  " << prop.first << " = ";
                     std::visit(
@@ -110,9 +152,9 @@ struct ScriptViewerTool : public Tool {
                 for (const auto& link : script.links) {
                     if (link[0] == i) {
                         CharString  from = block.meta ? block.meta->output[link[1]] : std::to_string(link[1]);
-                        const auto& toBlock = script.blocks[link[2]];
+                        const auto& toBlock = script.blocks.blocks[link[2]];
                         CharString  to = toBlock.meta ? toBlock.meta->input[link[3]] : std::to_string(link[3]);
-                        buf << "  " << from << " -> " << link[2] << '@' << toBlock.name << '.' << to << std::endl;
+                        buf << "  " << from << " -> " << toBlock.name << '@' << link[2] << '.' << to << std::endl;
                     }
                 }
                 buf << std::endl;
@@ -125,9 +167,9 @@ struct ScriptViewerTool : public Tool {
     void drawNode() {
         const Script& script = gEditor.mScripts[0];
         if (mGraph.isInited()) {
-            for (size_t i = 0; i != script.blocks.size(); i++) {
-                const auto& block = script.blocks[i];
-                mGraph.addNode(BlockNode::Create(ImVec2((int16_t)block.posx * 3, (int16_t)block.posy * 2), i, block));
+            for (size_t i = 0; i != script.blocks.blocks.size(); i++) {
+                const auto& block = script.blocks.blocks[i];
+                mGraph.addNode(BlockNode::Create(ImVec2(block.posx * 3, block.posy * 2), i, block));
             }
             for (const auto& link : script.links)
                 mGraph.addLink(mGraph.getNode(link[0]), link[1], mGraph.getNode(link[2]), link[3]);

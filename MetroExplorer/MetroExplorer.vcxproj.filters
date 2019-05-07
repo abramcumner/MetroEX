@@ -138,9 +138,6 @@
     <ClInclude Include="..\src\hashing.h">
       <Filter>metro</Filter>
     </ClInclude>
-    <ClInclude Include="..\src\metro\Config.h">
-      <Filter>metro</Filter>
-    </ClInclude>
     <ClInclude Include="..\src\metro\entities\Entity.h">
       <Filter>metro\entities</Filter>
     </ClInclude>
@@ -272,9 +269,6 @@
     <ClCompile Include="..\src\hashing.cpp">
       <Filter>metro</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\metro\Config.cpp">
-      <Filter>metro</Filter>
-    </ClCompile>
     <ClCompile Include="..\src\metro\entities\Entity.cpp">
       <Filter>metro\entities</Filter>
     </ClCompile>
@@ -322,6 +316,9 @@
     </ClCompile>
     <ClCompile Include="..\libs\lz4\lz4hc.c">
       <Filter>libs\lz4</Filter>
+    </ClCompile>
+    <ClCompile Include="ui\ui_entityprops.cpp">
+      <Filter>ui</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

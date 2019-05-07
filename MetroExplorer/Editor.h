@@ -4,6 +4,8 @@
 #include <metro/VFXReader.h>
 #include <metro/scripts/Script.h>
 
+struct uobject;
+
 enum class FileType {
     Unknown,
     Texture,
@@ -19,6 +21,7 @@ public:
     void SetCurrentFile(int curFile);
     void SetMainWnd(HWND wnd);
     void SetScript(const CharString& objName, const MyArray<Script>& scripts);
+    void SetSelObj(uobject * obj);
 
     VFXReader            mFs;
     int                  mCurFile = -1;
@@ -26,6 +29,7 @@ public:
     HWND                 mWnd = nullptr;
     CharString           mObjName;
     MyArray<Script>      mScripts;
+    uobject*             mSelObj;
 };
 
 extern Editor gEditor;

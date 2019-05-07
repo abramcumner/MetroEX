@@ -9,6 +9,7 @@ public:
         FileSystem, ///< Файловая система
         FileViewer, ///< Просмотрщик файлов
         ScriptViewer, ///< Просмотрщик скриптов
+        EntityProps, ///< Свойства спавн-объектов
     };
 
     Types type() {

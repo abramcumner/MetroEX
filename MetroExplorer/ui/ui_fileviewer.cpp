@@ -26,6 +26,7 @@ public:
         m_spawn.LoadFromData(data, gEditor.mFs, gEditor.mConfig);
     }
     ~LevelSpawnViewer() {
+        gEditor.SetSelObj(nullptr);
     }
 
     void draw() override {
@@ -71,8 +72,11 @@ public:
                     auto el = m_spawn.entities[i];
                     char idStr[10];
                     sprintf(idStr, "%u", el->initData.id);
-                    if (ImGui::Selectable(idStr, selected == i, ImGuiSelectableFlags_SpanAllColumns))
+                    if (ImGui::Selectable(idStr, selected == i, ImGuiSelectableFlags_SpanAllColumns)) {
+                        gEditor.SetSelObj(el);
+                        showTool(Tool::EntityProps);
                         selected = i;
+                    }
                     ImGui::SetItemAllowOverlap();
                     ImGui::NextColumn();
                     ImGui::Text(el->name.c_str());
