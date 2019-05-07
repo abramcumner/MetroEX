@@ -1,21 +1,21 @@
 #pragma once
+#include "hashing.h"
 #include "mycommon.h"
 #include "mymath.h"
-#include "hashing.h"
+#include "MetroTypes.h"
 
 struct MetroReflectionFlags {
-    static const uint8_t None           = 0;
-    static const uint8_t HasDebugInfo   = 1;
-    static const uint8_t Editor         = 2;
-    static const uint8_t StringsTable   = 4;
-    static const uint8_t Plain          = 8;
-    static const uint8_t NoSections     = 16;
-    static const uint8_t MultiChunk     = 32;
+    static const uint8_t None = 0;
+    static const uint8_t HasDebugInfo = 1;
+    static const uint8_t Editor = 2;
+    static const uint8_t StringsTable = 4;
+    static const uint8_t Plain = 8;
+    static const uint8_t NoSections = 16;
+    static const uint8_t MultiChunk = 32;
 };
 
-
-#define METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias)  sMetroRegisteredType##type##Alias##alias##Str
-#define METRO_MAKE_TYPE_ARRAY_ALIAS_STRING_NAME(type, alias)  sMetroRegisteredTypeArray##type##Alias##alias##Str
+#define METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias) sMetroRegisteredType##type##Alias##alias##Str
+#define METRO_MAKE_TYPE_ARRAY_ALIAS_STRING_NAME(type, alias) sMetroRegisteredTypeArray##type##Alias##alias##Str
 
 template <typename T>
 const CharString& MetroTypeGetAlias() {
@@ -38,18 +38,19 @@ const CharString& MetroTypeArray32GetAlias() {
     return empty;
 }
 
-#define METRO_REGISTER_TYPE_ALIAS(type, alias)                                                  \
-template <> inline const CharString& MetroTypeGetAlias<type>() {                                \
-    static const CharString METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias) = STRINGIFY(alias);  \
-    return METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias);                                      \
-}
+#define METRO_REGISTER_TYPE_ALIAS(type, alias)                                                     \
+    template <>                                                                                    \
+    inline const CharString& MetroTypeGetAlias<type>() {                                           \
+        static const CharString METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias) = STRINGIFY(alias); \
+        return METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias);                                     \
+    }
 
-
-#define METRO_REGISTER_TYPE_ARRAY_ALIAS(type, alias)                                                            \
-template <> inline const CharString& MetroTypeArrayGetAlias<type>() {                                           \
-    static const CharString METRO_MAKE_TYPE_ARRAY_ALIAS_STRING_NAME(type, alias) = STRINGIFY(alias) "_array";   \
-    return METRO_MAKE_TYPE_ARRAY_ALIAS_STRING_NAME(type, alias);                                                \
-}
+#define METRO_REGISTER_TYPE_ARRAY_ALIAS(type, alias)                                                              \
+    template <>                                                                                                   \
+    inline const CharString& MetroTypeArrayGetAlias<type>() {                                                     \
+        static const CharString METRO_MAKE_TYPE_ARRAY_ALIAS_STRING_NAME(type, alias) = STRINGIFY(alias) "_array"; \
+        return METRO_MAKE_TYPE_ARRAY_ALIAS_STRING_NAME(type, alias);                                              \
+    }
 
 #define METRO_REGISTER_TYPE_ARRAY32_ALIAS(type, alias)                                                              \
     template <>                                                                                                     \
@@ -58,13 +59,13 @@ template <> inline const CharString& MetroTypeArrayGetAlias<type>() {           
         return METRO_MAKE_TYPE_ARRAY_ALIAS_STRING_NAME(type, alias);                                                \
     }
 
-#define METRO_REGISTER_INHERITED_TYPE_ALIAS(type, baseType, alias)                                                      \
-template <> inline const CharString& MetroTypeGetAlias<type>() {                                                        \
-    static const CharString METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias) = STRINGIFY(alias) ", " STRINGIFY(baseType); \
-    return METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias);                                                              \
-}
-
-
+#define METRO_REGISTER_INHERITED_TYPE_ALIAS(type, baseType, alias)             \
+    template <>                                                                \
+    inline const CharString& MetroTypeGetAlias<type>() {                       \
+        static const CharString METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias) \
+            = STRINGIFY(alias) ", " STRINGIFY(baseType);                       \
+        return METRO_MAKE_TYPE_ALIAS_STRING_NAME(type, alias);                 \
+    }
 
 METRO_REGISTER_TYPE_ALIAS(bool, bool)
 METRO_REGISTER_TYPE_ALIAS(uint8_t, u8)
@@ -81,16 +82,19 @@ METRO_REGISTER_TYPE_ALIAS(vec4, vec4f)
 METRO_REGISTER_TYPE_ALIAS(quat, vec4f)
 METRO_REGISTER_TYPE_ALIAS(CharString, stringz)
 METRO_REGISTER_TYPE_ALIAS(Flags8, bool8)
-METRO_REGISTER_TYPE_ALIAS(Flags64, flags64)
 METRO_REGISTER_TYPE_ALIAS(AnimationString, animation_str)
 METRO_REGISTER_TYPE_ALIAS(FloatQ8, fp32_q8)
 METRO_REGISTER_TYPE_ALIAS(ang3, ang3f)
+METRO_REGISTER_TYPE_ALIAS(vec4s16, vec4s16)
+METRO_REGISTER_TYPE_ALIAS(vec4i, vec4i)
 
 METRO_REGISTER_INHERITED_TYPE_ALIAS(color4f, vec4f, color)
 METRO_REGISTER_INHERITED_TYPE_ALIAS(MetroTime, u32, time)
-METRO_REGISTER_INHERITED_TYPE_ALIAS(pose, matrix_43T, pose)
+METRO_REGISTER_INHERITED_TYPE_ALIAS(mat43T, matrix_43T, pose)
 METRO_REGISTER_INHERITED_TYPE_ALIAS(Angle, fp32, angle)
 METRO_REGISTER_INHERITED_TYPE_ALIAS(EntityLink, uobject_link, entity_link)
+METRO_REGISTER_INHERITED_TYPE_ALIAS(ColorU32, u32, color)
+METRO_REGISTER_INHERITED_TYPE_ALIAS(mat4, matrix, pose)
 
 METRO_REGISTER_TYPE_ARRAY_ALIAS(bool, bool)
 METRO_REGISTER_TYPE_ARRAY_ALIAS(uint8_t, u8)
@@ -128,7 +132,7 @@ public:
         , mSectionName(std::move(other.mSectionName)) {
     }
 
-    inline MetroReflectionReader& operator =(const MetroReflectionReader& other) {
+    inline MetroReflectionReader& operator=(const MetroReflectionReader& other) {
         mStream = other.mStream;
         mSTable = other.mSTable;
         mFlags = other.mFlags;
@@ -136,7 +140,7 @@ public:
         return *this;
     }
 
-    inline MetroReflectionReader& operator =(MetroReflectionReader&& other) {
+    inline MetroReflectionReader& operator=(MetroReflectionReader&& other) {
         mStream = std::move(other.mStream);
         mSTable = other.mSTable;
         mFlags = other.mFlags;
@@ -177,7 +181,7 @@ public:
     }
 
     bool ReadEditorTag(const CharString& propName) {
-        //static CharString sChooseStr("choose");
+        // static CharString sChooseStr("choose");
 
         if (this->HasDebugInfo()) {
             CharString name = mStream.ReadStringZ();
@@ -188,8 +192,8 @@ public:
 
             CharString chooseStr = mStream.ReadStringZ();
             //#TODO_SK: different choose attributes could be
-            //assert(chooseStr == sChooseStr);
-            //if (chooseStr != sChooseStr) {
+            // assert(chooseStr == sChooseStr);
+            // if (chooseStr != sChooseStr) {
             //    return false;
             //}
         }
@@ -213,7 +217,8 @@ public:
         return true;
     }
 
-    MetroReflectionReader OpenSection(const CharString& sectionName, const bool nameUnknown = false, const bool useParentFlags = false) {
+    MetroReflectionReader OpenSection(
+        const CharString& sectionName, const bool nameUnknown = false, const bool useParentFlags = false) {
         if (this->HasNoSections()) {
             return *this;
         } else {
@@ -224,12 +229,12 @@ public:
                 mStream.SkipBytes(sizeof(uint32_t));
 
                 uint32_t sectionSize;
-                uint8_t flags = mFlags;
+                uint8_t  flags = mFlags;
                 (*this) >> sectionSize;
                 if (!useParentFlags)
                     (*this) >> flags;
 
-                const size_t dataSize = useParentFlags? sectionSize : sectionSize - 1;
+                const size_t dataSize = useParentFlags ? sectionSize : sectionSize - 1;
                 //#TODO_SK: replace with constants
                 MetroReflectionReader result(mStream.Substream(dataSize), flags);
                 result.SetSTable(mSTable);
@@ -296,18 +301,18 @@ public:
     }
 
     template <typename T>
-    inline void operator >>(T& v) {
+    inline void operator>>(T& v) {
         v.Serialize(*this);
     }
 
     template <typename T>
-    inline void operator >>(T*& v) {
+    inline void operator>>(T*& v) {
         Serialize(*this, v);
     }
 
-#define IMPLEMENT_SIMPLE_TYPE_READ(type)    \
-    void operator >>(type& v) {             \
-        v = mStream.ReadTyped<type>();      \
+#define IMPLEMENT_SIMPLE_TYPE_READ(type) \
+    void operator>>(type& v) {           \
+        v = mStream.ReadTyped<type>();   \
     }
 
     IMPLEMENT_SIMPLE_TYPE_READ(bool)
@@ -322,7 +327,7 @@ public:
 
 #undef IMPLEMENT_SIMPLE_TYPE_READ
 
-    inline void operator >>(CharString& v) {
+    inline void operator>>(CharString& v) {
         if (this->HasStringsTable()) {
             uint32_t ref;
             (*this) >> ref;
@@ -334,88 +339,108 @@ public:
         }
     }
 
-    inline void operator >>(vec2& v) {
+    inline void operator>>(vec2& v) {
         (*this) >> v.x;
         (*this) >> v.y;
     }
 
-    inline void operator >>(vec3& v) {
-        (*this) >> v.x;
-        (*this) >> v.y;
-        (*this) >> v.z;
-    }
-
-    inline void operator >>(vec4& v) {
+    inline void operator>>(vec3& v) {
         (*this) >> v.x;
         (*this) >> v.y;
         (*this) >> v.z;
-        (*this) >> v.w;
     }
 
-    inline void operator >>(quat& v) {
+    inline void operator>>(vec4& v) {
         (*this) >> v.x;
         (*this) >> v.y;
         (*this) >> v.z;
         (*this) >> v.w;
     }
 
-    inline void operator >>(color4f& v) {
+    inline void operator>>(quat& v) {
+        (*this) >> v.x;
+        (*this) >> v.y;
+        (*this) >> v.z;
+        (*this) >> v.w;
+    }
+
+    inline void operator>>(color4f& v) {
         (*this) >> v.r;
         (*this) >> v.g;
         (*this) >> v.b;
         (*this) >> v.a;
     }
 
-    inline void operator >>(MetroTime& v) {
+    inline void operator>>(MetroTime& v) {
         (*this) >> v.value;
     }
 
-    inline void operator >>(pose& v) {
+    inline void operator>>(mat43T& v) {
         (*this) >> v[0];
         (*this) >> v[1];
         (*this) >> v[2];
     }
 
-    inline void operator >>(Angle& v) {
+    inline void operator>>(mat4& v) {
+        (*this) >> v[0];
+        (*this) >> v[1];
+        (*this) >> v[2];
+        (*this) >> v[3];
+    }
+
+    inline void operator>>(Angle& v) {
         (*this) >> v.value;
     }
 
-    inline void operator >>(AnimationString& v) {
+    inline void operator>>(AnimationString& v) {
         (*this) >> v.value;
     }
 
-    inline void operator >>(FloatQ8& v) {
+    inline void operator>>(FloatQ8& v) {
         uint8_t q8;
         (*this) >> q8;
         v.value = 2 * q8 / 255.0f;
     }
 
-    inline void operator >>(EntityLink& v) {
+    inline void operator>>(EntityLink& v) {
         (*this) >> v.value;
     }
 
-    inline void operator >>(ang3& v) {
+    inline void operator>>(ang3& v) {
         (*this) >> v.x;
         (*this) >> v.y;
         (*this) >> v.z;
     }
 
-    inline void operator >>(Flags8& v) {
+    inline void operator>>(Flags8& v) {
         (*this) >> v.value;
     }
 
-    inline void operator >>(Flags64& v) {
+    inline void operator>>(vec4s16& v) {
+        (*this) >> v[0];
+        (*this) >> v[1];
+        (*this) >> v[2];
+        (*this) >> v[3];
+    }
+
+    inline void operator>>(ColorU32& v) {
         (*this) >> v.value;
     }
 
-#define IMPLEMENT_TYPE_ARRAY_READ(type)     \
-    void operator >>(MyArray<type>& v) {    \
-        uint32_t numElements = 0;           \
-        (*this) >> numElements;             \
-        v.resize(numElements);              \
-        for (type& e : v) {                 \
-            (*this) >> e;                   \
-        }                                   \
+    inline void operator>>(vec4i& v) {
+        (*this) >> v[0];
+        (*this) >> v[1];
+        (*this) >> v[2];
+        (*this) >> v[3];
+    }
+#define IMPLEMENT_TYPE_ARRAY_READ(type) \
+    void operator>>(MyArray<type>& v) { \
+        uint32_t numElements = 0;       \
+        (*this) >> numElements;         \
+        v.resize(numElements);          \
+        for (type & e : v) {            \
+            (*this) >> e;               \
+        }                               \
     }
 
     IMPLEMENT_TYPE_ARRAY_READ(int8_t)
@@ -436,14 +461,12 @@ private:
     CharString          mSectionName;
 };
 
-
 template <typename T>
 struct ArrayElementTypeGetter {
     typedef typename T::value_type elem_type;
 };
 
-
-#define METRO_READ_MEMBER_NO_VERIFY(s, memberName)  s >> memberName;
+#define METRO_READ_MEMBER_NO_VERIFY(s, memberName) s >> memberName;
 
 #define METRO_READ_MEMBER(s, memberName)                                                \
     s.VerifyTypeInfo(STRINGIFY(memberName), MetroTypeGetAlias<decltype(memberName)>()); \
@@ -453,12 +476,14 @@ struct ArrayElementTypeGetter {
 
 #define METRO_READ_CHILD_STRUCT(s, memberName) s.ReadStruct(STRINGIFY(memberName), memberName, true)
 
-#define METRO_READ_ARRAY_MEMBER(s, memberName)                                                                                  \
-    s.VerifyTypeInfo(STRINGIFY(memberName), MetroTypeArrayGetAlias<ArrayElementTypeGetter<decltype(memberName)>::elem_type>()); \
+#define METRO_READ_ARRAY_MEMBER(s, memberName)                                                                     \
+    s.VerifyTypeInfo(                                                                                              \
+        STRINGIFY(memberName), MetroTypeArrayGetAlias<ArrayElementTypeGetter<decltype(memberName)>::elem_type>()); \
     s >> memberName;
 
-#define METRO_READ_ARRAY32_MEMBER(s, memberName)                                                                                  \
-    s.VerifyTypeInfo(STRINGIFY(memberName), MetroTypeArray32GetAlias<ArrayElementTypeGetter<decltype(memberName)>::elem_type>()); \
+#define METRO_READ_ARRAY32_MEMBER(s, memberName)                                                                     \
+    s.VerifyTypeInfo(                                                                                                \
+        STRINGIFY(memberName), MetroTypeArray32GetAlias<ArrayElementTypeGetter<decltype(memberName)>::elem_type>()); \
     s >> memberName;
 
 #define METRO_READ_STRUCT_ARRAY_MEMBER(s, memberName) s.ReadStructArray(STRINGIFY(memberName), memberName)
@@ -470,28 +495,20 @@ struct ArrayElementTypeGetter {
     s.VerifyTypeInfo(STRINGIFY(memberName), MetroTypeGetAlias<decltype(memberName)>()); \
     s >> memberName;
 
-#define METRO_READ_MEMBER_NAME(s, memberName)                                           \
-    s.ReadEditorTag(STRINGIFY(memberName));                                             \
+#define METRO_READ_MEMBER_STRARRAY_CHOOSE(s, memberName)                      \
+    s.ReadEditorTag(STRINGIFY(memberName));                                   \
+    s.VerifyTypeInfo(STRINGIFY(memberName), MetroTypeGetAlias<CharString>()); \
+    {                                                                         \
+        CharString tmpStr;                                                    \
+        do {                                                                  \
+            s >> tmpStr;                                                      \
+            if (!tmpStr.empty()) {                                            \
+                memberName.push_back(tmpStr);                                 \
+            }                                                                 \
+        } while (!tmpStr.empty());                                            \
+    }
+
+#define METRO_READ_MEMBER_EXT(s, extType, memberName)                                   \
+    s.VerifyTypeInfo(STRINGIFY(memberName), STRINGIFY(extType));                        \
     s.VerifyTypeInfo(STRINGIFY(memberName), MetroTypeGetAlias<decltype(memberName)>()); \
     s >> memberName;
-
-#define METRO_READ_MEMBER_PART_STR(s, memberName)                                       \
-    s.ReadEditorTag(STRINGIFY(memberName));                                             \
-    s.VerifyTypeInfo(STRINGIFY(memberName), MetroTypeGetAlias<decltype(memberName)>()); \
-    s >> memberName;
-
-#define METRO_READ_MEMBER_ATTP_SRC(s, memberName)                                       \
-    s.ReadEditorTag(STRINGIFY(memberName));                                             \
-    s.VerifyTypeInfo(STRINGIFY(memberName), MetroTypeGetAlias<decltype(memberName)>()); \
-    s >> memberName;
-
-#define METRO_READ_MEMBER_STRARRAY_CHOOSE(s, memberName)                        \
-    s.ReadEditorTag(STRINGIFY(memberName));                                     \
-    s.VerifyTypeInfo(STRINGIFY(memberName), MetroTypeGetAlias<CharString>());   \
-    { CharString tmpStr; do {                                                   \
-        s >> tmpStr;                                                            \
-        if (!tmpStr.empty()) {                                                  \
-            memberName.push_back(tmpStr);                                       \
-        }                                                                       \
-    } while (!tmpStr.empty()); }
-

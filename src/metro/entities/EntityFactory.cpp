@@ -1,6 +1,7 @@
 #include "EntityFactory.h"
-#include "../Config.h"
+#include "../MetroBinArchive.h"
 #include "../MetroConfigDatabase.h"
+#include "../MetroReflection.h"
 #include "Entity.h"
 #include <fstream>
 #include <hashing.h>
@@ -492,6 +493,18 @@ uobject* Create(uint32_t clsid) {
         return new centity;
     case 0x54571bfa: // VISUALSCRIPT
         return new uobject_vs;
+    case 0x5275e6e: // O_BASEZONE
+        return new uobject_zone;
+    case 0xeeffe3be: // O_INTEREST
+        return new uobject_interest;
+    case 0xb42ea669: // PATROL_POINT
+        return new patrol_point;
+    case 0x27dcdaf2: // O_AIPOINT
+        return new uobject_aipoint;
+    case 0xa7f76a1e: // O_HELPERTEXT
+        return new helper_text;
+    case 0x84260b0e: // PROXY
+        return new uobject_proxy;
     default:
         return new UnknownObject;
     }
@@ -513,10 +526,25 @@ uobject_static_params* CreateStaticParam(uint32_t clsid) {
         return new centity_static_params;
     case 0x54571bfa: // VISUALSCRIPT
         return new uobject_static_params;
+    case 0x5275e6e: // O_BASEZONE
+        return new uobject_static_params;
+    case 0xeeffe3be: // O_INTEREST
+        return new uobject_static_params;
+    case 0xb42ea669: // PATROL_POINT
+        return new uobject_static_params;
+    case 0x27dcdaf2: // O_AIPOINT
+        return new uobject_static_params;
+    case 0xa7f76a1e: // O_HELPERTEXT
+        return new uobject_static_params;
+    case 0x84260b0e: // PROXY
+        return new uobject_static_params;
     default:
         return new unknown_static_params;
     }
 }
+
+const MetroConfigsDatabase* _configDb;
+MemStream                   _config;
 }
 
 namespace EntityFactory {
@@ -533,7 +561,12 @@ uobject* Create(const InitData& data) {
     return entity;
 }
 
-uobject_static_params* GetStaticParams(const InitData& init, const MetroConfigsDatabase& configDb, MemStream& config) {
+void SetConfig(const MetroConfigsDatabase* configDb, MemStream&& config) {
+    _configDb = configDb;
+    _config = config;
+}
+
+uobject_static_params* GetStaticParams(const InitData& init) {
     uint64_t key = ((uint64_t)init.clsid << 32) + init.static_data_key;
     auto     it = paramCache.find(key);
     if (it != paramCache.end())
@@ -543,20 +576,22 @@ uobject_static_params* GetStaticParams(const InitData& init, const MetroConfigsD
 
     char cfgName[256];
     sprintf(cfgName, "content\\scripts\\static_data\\%08x_%08x_%08x.bin", init.clsid, init.clsid, init.static_data_key);
-    const auto* cfgInfo = configDb.FindFile(cfgName);
-    const auto* cfgInfo2 = configDb.FindFile(Hash_CalculateCRC32(cfgName));
+    const auto* cfgInfo = _configDb->FindFile(cfgName);
+    const auto* cfgInfo2 = _configDb->FindFile(Hash_CalculateCRC32(cfgName));
     assert(cfgInfo2);
     if (!cfgInfo) {
         std::ofstream file("unknown_config.txt", std::ofstream::binary | std::ofstream::app);
         if (file.good())
             file << cfgName << std::endl;
     }
-    config.SetCursor(cfgInfo2->offset);
-    MemStream stream = config.Substream(cfgInfo2->length);
-    Config    cfg(stream);
-    uint16_t  version = cfg.r_u16("version");
-    param->Read(cfg, version);
-    assert(cfg.Ended());
+    _config.SetCursor(cfgInfo2->offset);
+    MemStream             stream = _config.Substream(cfgInfo2->length);
+    MetroBinArchive       a(kEmptyString, stream, MetroBinArchive::kHeaderDoAutoSearch);
+    MetroReflectionReader r { a.ReflectionReader() };
+    uint16_t              version;
+    METRO_READ_MEMBER(r, version);
+    param->Read(r, version);
+    assert(r.GetStream().Ended());
 
     return param;
 }

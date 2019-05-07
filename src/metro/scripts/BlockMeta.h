@@ -3,7 +3,8 @@
 #include "../MetroTypes.h"
 #include <variant>
 
-using ParamValue = std::variant<uint16_t, bool, int, uint32_t, CharString, float>;
+using U8Array = MyArray<uint8_t>;
+using ParamValue = std::variant<uint16_t, bool, uint32_t, CharString, float, Flags8, MetroTime, AnimationString, EntityLink, int, ColorU32, color4f, vec2, U8Array>;
 enum ParamType {
     Type_u16, // "u16"
     Type_bool, // "bool"
@@ -18,6 +19,10 @@ enum ParamType {
     Type_part,
     Type_u8, // "u8"
     Type_u32, // "u32"
+    Type_s32, // "s32"
+    Type_color_vec4f,
+    Type_vec2f,
+    Type_u8_array,
 };
 struct MetaProp {
     ParamType   type;

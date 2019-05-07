@@ -4,15 +4,26 @@
 #include "Block.h"
 #include <array>
 
-class Config;
 class MetroReflectionReader;
 
-struct Script {
-    uint16_t                         version;
-    MyArray<Block>                   blocks;
-    MyArray<std::array<uint16_t, 4>> links;
+struct ScriptGroup {
+    void Serialize(MetroReflectionReader& r);
+};
 
-    void Read(Config& cfg);
+struct ScriptBlocks {
+    uint16_t       version;
+    uint32_t       block_count;
+    MyArray<Block> blocks;
+
+    void Serialize(MetroReflectionReader& r);
+};
+
+struct Script {
+    MyArray<ScriptGroup> groups;
+    ScriptBlocks         blocks;
+    uint32_t             link_count;
+    MyArray<vec4s16>     links;
+
     void Serialize(MetroReflectionReader& r);
 };
 
@@ -23,9 +34,8 @@ struct ScriptRef {
     bool           disable_qsave;
     bool           save_on_nextlevel;
     CharString     vs_ref;
-    bool           dyn_state_exists;
-    MyArray<Block> exposed_blocks;
+    bool           vs_ref_dyn_state_exist;
+    MyArray<BlockRef> exposed_blocks;
 
-    void Read(Config& cfg);
     void Serialize(MetroReflectionReader& r);
 };

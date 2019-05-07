@@ -60,7 +60,7 @@ void Serialize(MetroReflectionReader& r, uobject*& obj) {
     InitData data;
     data.Serialize(r);
     obj = EntityFactory::Create(data);
-    // obj->param = EntityFactory::GetStaticParams(obj->initData, configDb, config);
+    obj->param = EntityFactory::GetStaticParams(obj->initData);
     obj->Read(r);
 }
 
@@ -69,6 +69,7 @@ bool LevelSpawn::LoadFromData(MemStream& stream, const VFXReader& fs, const Metr
     MemStream config = fs.ExtractFile(fileIdx);
     if (!config)
         return false;
+    EntityFactory::SetConfig(&configDb, std::move(config));
 
     auto id = stream.ReadTyped<uint32_t>();
     if (id != MakeFourcc<'l', 'e', 'v', 'l'>())

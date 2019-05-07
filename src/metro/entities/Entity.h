@@ -6,7 +6,6 @@
 #include <mymath.h>
 #include <variant>
 
-class Config;
 class MetroReflectionReader;
 
 struct InitData {
@@ -15,23 +14,29 @@ struct InitData {
     CharString att_bone_id;
     uint16_t   id;
     uint16_t   parent_id;
-    pose       att_offset;
+    mat43T     att_offset;
     bool       att_root;
 
     void Serialize(MetroReflectionReader& r);
 };
 
-struct uobject_static_params {
-    uint16_t   version;
+struct EditorProps {
     CharString caption;
-    bool       editable;
-    bool       visible_for_ai;
-    bool       block_ai_los;
-    bool       accept_fast_explosion;
-    bool       collideable;
-    float      usage_distance;
 
-    virtual void Read(Config& cfg, uint16_t version);
+    void Serialize(MetroReflectionReader& r);
+};
+
+struct uobject_static_params {
+    uint16_t    version;
+    EditorProps __edit;
+    bool        editable;
+    bool        visible_for_ai;
+    bool        block_ai_los;
+    bool        accept_fast_explosion;
+    bool        collideable;
+    float       usage_distance;
+
+    virtual void Read(MetroReflectionReader& r, uint16_t version);
 };
 
 struct uobject {
@@ -52,7 +57,7 @@ struct uobject {
     Flags8             oflags;
     Flags8             sflags;
     float              cull_distance;
-    pose               pose;
+    mat43T             pose;
     CharString         visual;
     uint16_t           dao_val;
     color4f            render_aux_val;
@@ -117,7 +122,7 @@ struct centity_static_params : public uobject_static_params {
     float      attach_threshold;
     float      attach_armor;
 
-    void Read(Config& cfg, uint16_t version) override;
+    void Read(MetroReflectionReader& r, uint16_t version) override;
 };
 
 struct PhysicsShape {
@@ -129,7 +134,7 @@ struct PhysicsShape {
 struct PhysicsElement {
     uint16_t              root_bid;
     float                 accumulated_impulse;
-    pose                  xform;
+    mat43T                xform;
     vec3                  velocity;
     bool                  nx_awake;
     MyArray<PhysicsShape> shapes;
@@ -180,7 +185,7 @@ struct centity : public uobject_effect {
     CharString   break_particles_death;
     CharString   break_sound_death;
     uint8_t      break_sound_death_ai_type;
-    Flags64      type_mask;
+    uint64_t     type_mask;
     uint32_t     ph_shell_model_src;
     uint32_t     ph_shell_skltn_src;
     uint32_t     ph_shell_skltn_bcount;
@@ -198,9 +203,15 @@ struct lamp : public centity {
     void Read(MetroReflectionReader& r) override;
 };
 
+struct SlotProps {
+    uint32_t slot;
+
+    void Serialize(MetroReflectionReader& r);
+};
+
 struct inventory_item_static_params {
-    uint32_t   slot;
-    uint8_t    flags;
+    SlotProps  slot;
+    Flags8     flags;
     float      control_inertion_factor;
     float      speed_coef;
     float      sens_coef;
@@ -222,7 +233,7 @@ struct inventory_item_static_params {
     CharString item_attp_npc;
     uint16_t   ui_tag;
 
-    void Read(Config& cfg, uint16_t version);
+    void Read(MetroReflectionReader& r, uint16_t version);
 };
 
 struct inventory_item_object_static_params : public centity_static_params {
@@ -232,7 +243,7 @@ struct inventory_item_object_static_params : public centity_static_params {
     CharString                   take_sound;
     bool                         can_be_taken_as_child;
 
-    void Read(Config& cfg, uint16_t version) override;
+    void Read(MetroReflectionReader& r, uint16_t version) override;
 };
 
 struct inventory_item_object : public centity {
@@ -246,13 +257,13 @@ struct inventory_item_object : public centity {
 };
 
 struct chud_item_container_static_params {
-    void Read(Config& cfg, uint16_t version);
+    void Read(MetroReflectionReader& r, uint16_t version);
 };
 
 struct upgrade_item_static_params : public inventory_item_object_static_params {
     chud_item_container_static_params container;
 
-    void Read(Config& cfg, uint16_t version) override;
+    void Read(MetroReflectionReader& r, uint16_t version) override;
 };
 
 struct upgrade_item : public inventory_item_object {
@@ -264,7 +275,7 @@ struct upgrade_item : public inventory_item_object {
 struct device_upgrade_static_params : public upgrade_item_static_params {
     uint8_t menu_event;
 
-    void Read(Config& cfg, uint16_t version) override;
+    void Read(MetroReflectionReader& r, uint16_t version) override;
 };
 
 struct device_upgrade : public upgrade_item {};
@@ -276,43 +287,43 @@ struct player_timer_static_params : public device_upgrade_static_params {};
 struct player_timer : public player_timer_base {};
 
 struct player_timer_hud_item_static_params {
-    float                  font_size;
-    CharString             font_name;
-    std::array<int32_t, 4> color;
-    std::array<int32_t, 4> color_active;
-    std::array<int32_t, 4> color_time;
-    std::array<int32_t, 4> color_vs;
-    CharString             light_bone;
+    float      font_size;
+    CharString font_name;
+    vec4i      color;
+    vec4i      color_active;
+    vec4i      color_time;
+    vec4i      color_vs;
+    CharString light_bone;
 
-    void Read(Config& cfg, uint16_t version);
+    void Read(MetroReflectionReader& r, uint16_t version);
 };
 
 struct player_timer_hud_item_object_static_params : public player_timer_static_params {
     player_timer_hud_item_static_params hud_item;
 
-    void Read(Config& cfg, uint16_t version) override;
+    void Read(MetroReflectionReader& r, uint16_t version) override;
 };
 
 struct player_timer_hud_item_object : public player_timer {};
 
 struct shooting_particles_data {
-    void Read(Config& cfg, uint16_t version);
+    void Read(MetroReflectionReader& r, uint16_t version);
 };
 
 struct shooting_light_data {
-    void Read(Config& cfg, uint16_t version);
+    void Read(MetroReflectionReader& r, uint16_t version);
 };
 
 struct shooting_weapon_data {
-    void Read(Config& cfg, uint16_t version);
+    void Read(MetroReflectionReader& r, uint16_t version);
 };
 
 struct weapon_item_static_params : public upgrade_item_static_params {
-    void Read(Config& cfg, uint16_t version) override;
+    void Read(MetroReflectionReader& r, uint16_t version) override;
 };
 
 struct chuditem_static_params {
-    void Read(Config& cfg, uint16_t version);
+    void Read(MetroReflectionReader& r, uint16_t version);
 };
 
 struct weapon_item : public upgrade_item {
@@ -323,13 +334,120 @@ struct weapon_item : public upgrade_item {
 };
 
 struct uobject_vs : public uobject {
-    void Read(MetroReflectionReader& cfg) override;
+    void Read(MetroReflectionReader& r) override;
+};
+
+struct ShapeSphere {
+    vec3  center;
+    float radius;
+
+    void Serialize(MetroReflectionReader& r);
+};
+
+struct ShapeBox {
+    mat4 pose;
+    vec3 h_size;
+
+    void Serialize(MetroReflectionReader& r);
+};
+
+struct Shape {
+    uint32_t    type;
+    ShapeSphere sphere;
+    ShapeBox    box;
+
+    void Serialize(MetroReflectionReader& r);
+};
+
+struct uobject_restrictor : public uobject {
+    CharString     label;
+    MyArray<Shape> shapes;
+    uint8_t        collisions_group;
+    uint8_t        obstacle_collision_group;
+    Flags8         flags0;
+    uint8_t        block_ai_vision;
+    uint8_t        scene_type;
+    CharString     step_gmtrl;
+    uint8_t        dynamic_mode;
+
+    void Read(MetroReflectionReader& r) override;
+};
+
+struct uobject_zone : public uobject_restrictor {
+    uint64_t type_mask;
+    bool     type_filter_on;
+
+    void Read(MetroReflectionReader& r) override;
+};
+
+struct uobject_interest : public uobject {
+    interest_info interest;
+
+    void Read(MetroReflectionReader& r) override;
+};
+
+struct PointLink {
+    EntityLink object;
+    float      weight;
+
+    void Serialize(MetroReflectionReader& r);
+};
+
+struct uobject_aipoint : public uobject {
+    PointLink  links[4];
+    Flags8     ai_map;
+    CharString cover_group;
+
+    void Read(MetroReflectionReader& r) override;
+};
+
+struct PatrolState {
+    CharString body_state;
+    CharString anim_state;
+    CharString movement_type;
+    CharString weapon_state;
+    CharString action;
+    EntityLink target;
+    uint32_t   flags;
+    float      anim_state_approach_speed;
+    float      approaching_accel;
+
+    void Serialize(MetroReflectionReader& r);
+};
+
+struct patrol_point : public uobject_aipoint {
+    uint32_t    min_wait_time;
+    uint32_t    max_wait_time;
+    PatrolState state;
+    void        Read(MetroReflectionReader& r) override;
+};
+
+struct helper_text : public uobject {
+    CharString text;
+    CharString text_key;
+    float      size;
+    color4f    color;
+    CharString font;
+    Flags8     flags0;
+    float      width;
+    float      height;
+    uint8_t    h_alignment;
+    float      display_dist;
+
+    void Read(MetroReflectionReader& r) override;
+};
+
+struct uobject_proxy : public uobject {
+    uint16_t            slice_count;
+    MyArray<EntityLink> entities;
+
+    void Read(MetroReflectionReader& r) override;
 };
 
 struct unknown_static_params : public uobject_static_params {
     BytesArray unknown;
 
-    void Read(Config& cfg, uint16_t version) override;
+    void Read(MetroReflectionReader& r, uint16_t version) override;
 };
 
 struct UnknownObject : public uobject {

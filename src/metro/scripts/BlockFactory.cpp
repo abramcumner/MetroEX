@@ -2,6 +2,7 @@
 #include <hashing.h>
 #include <mycommon.h>
 #include <mymath.h>
+#include <unordered_set>
 
 namespace {
 const char* blockNames[] = {
@@ -1720,8 +1721,8 @@ MyDict<uint32_t, MetaInfo> metaBlocks {
     // logic/delay
     { 0xde1f2b0e,
         { {
-              { Type_time, "max" },
               { Type_time, "min" },
+              { Type_time, "max" },
               { Type_bool8, "dflags" },
           },
             { "start", "activate", "deactivate", "stop", "restart" }, { "out" } } },
@@ -1794,21 +1795,121 @@ MyDict<uint32_t, MetaInfo> metaBlocks {
 
           },
             { "activate", "deactivate" }, { "target", "start", "finish" } } },
+    // triggers/player
+    { 0x27db3ded,
+        { {
+              { Type_bool, "active" },
+              { Type_s32, "reaction_count" },
+              { Type_bool, "active_on_load" },
+              { Type_entity, "zone_link" },
+              { Type_bool, "check_on_activate" },
+          },
+            { "activate", "deactivate", "check" }, { "Enter", "Leave", "target", "Target Player" } } },
+    //  actions/engine/signal
+    { 0xe5727f1e,
+        { {
+              { Type_choose, "signal" },
+              { Type_u8, "mode" },
+              { Type_bool, "localus" },
+              { Type_bool, "relatives" },
+          },
+            { "activate" }, { "target" } } },
+    // triggers/engine/signal
+    { 0x627ce24,
+        { {
+              { Type_bool, "active" },
+              { Type_choose, "signal" },
+          },
+            { "activate", "deactivate" }, { "Event" } } },
+    // entities/entity ref
+    { 0xc39f6693,
+        { {
+              { Type_entity, "target" },
+          },
+            { "connection" }, {} } },
+    // logic/select_param
+    { 0xcb33223d,
+        { {
+              { Type_u8, "quant" },
+              { Type_bool, "same_selected_allowed" },
+          },
+            { "activate", "sel-0", "sel-1", "sel-2", "sel-3", "sel-4", "sel-5", "sel-6", "sel-7" },
+            { "out-0", "out-1", "out-2", "out-3", "out-4", "out-5", "out-6", "out-7", "selected" } } },
+    // fun/text splash
+    { 0x99784194,
+        { {
+              { Type_bool, "active" },
+              { Type_sz, "text" },
+              { Type_color_vec4f, "color" },
+              { Type_fp32, "max_size" },
+              { Type_fp32, "speed" },
+              { Type_bool, "stop" },
+              { Type_bool, "interrupt" },
+          },
+            { "activate", "deactivate" }, { "finish", "target" } } },
+    // triggers/use
+    { 0x87be0205,
+        { {
+              { Type_bool, "active" },
+              { Type_u8, "source_filter" },
+              { Type_fp32, "usage_distance" },
+              { Type_choose, "use_action" },
+              { Type_vec2f, "use_offset" },
+              { Type_fp32, "blink_distance" },
+              { Type_bool8, "blink" },
+              { Type_u8, "user_team" },
+              { Type_bool, "in_reloading" },
+              { Type_u8_array, "mp_classes" },
+              { Type_bool, "trigger_only" },
+              { Type_u32, "hold_count" },
+          },
+            { "activate", "deactivate", "Blink On", "Blink Off" },
+            { "Begin", "End", "target", "Initiator", "Can Use", "Cant Use", "Hold End" } } },
+    // actions/show_hud_menu
+    { 0x84a40d1,
+        { {
+              { Type_choose, "menu_name" },
+              { Type_bool, "set_position" },
+              { Type_u32, "position_x" },
+              { Type_u32, "position_y" },
+              { Type_bool, "set_scale" },
+              { Type_fp32, "scale" },
+              { Type_u8, "unknown" },// ??? в арктике этого поля нет
+          },
+            { "activate", "deactivate" }, {} } },
+    // actions/attach vs
+    { 0xa2510fdc,
+        { {
+              { Type_sz, "name" },
+              { Type_bool, "disable_qsave" },
+          },
+            { "activate", "deactivate" }, { "target", "finish" } } },
+    // actions/net/action_objective_complete
+    { 0x50409eb7,
+        { {
+              { Type_sz, "name" },
+          },
+            { "activate", "deactivate" }, { "target" } } },
 };
 
 }
 
 namespace BlockFactory {
 Block Create(uint32_t clsid) {
-    static auto nameMap = CreateBlockMap();
+    static auto                         nameMap = CreateBlockMap();
+    static std::unordered_set<uint32_t> unknownBlockLogged;
 
     auto nameIt = nameMap.find(clsid);
     assert(nameIt != nameMap.end());
     const char* name = nameIt == nameMap.end() ? nullptr : nameIt->second;
 
     auto metaIt = metaBlocks.find(clsid);
-    if (metaIt == metaBlocks.end())
-        LogPrint(LogLevel::Info, "unknown script block ", name);
+    if (metaIt == metaBlocks.end()) {
+        if (unknownBlockLogged.find(clsid) == unknownBlockLogged.end()) {
+            LogPrint(LogLevel::Info, "unknown script block ", name);
+            unknownBlockLogged.insert(clsid);
+        }
+    }
     auto meta = metaIt == metaBlocks.end() ? nullptr : &metaIt->second;
 
     Block result(clsid, name, meta);

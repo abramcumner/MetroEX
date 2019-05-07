@@ -243,3 +243,37 @@ enum class MetroBodyPart : size_t {
     Chest       = 8,
     Gear        = 9
 };
+
+struct MetroTime {
+    uint32_t value;
+};
+
+struct Flags8 {
+    uint8_t value;
+};
+
+struct Angle {
+    float value;
+};
+
+struct AnimationString {
+    CharString value;
+};
+
+struct FloatQ8 {
+    float value;
+};
+
+struct EntityLink {
+    uint16_t value;
+};
+
+using vec4s16 = std::array<int16_t, 4>;
+using vec4i = std::array<int32_t, 4>;
+
+struct ColorU32 {
+    uint32_t value;
+};
+
+struct ang3 : vec3 {
+};

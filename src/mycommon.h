@@ -8,6 +8,7 @@
 #include <numeric>
 #include <algorithm>
 #include <cassert>
+#include <array>
 
 #include "xxhash.h"
 
@@ -358,31 +359,3 @@ public:
 };
 
 #include "log.h"
-
-struct MetroTime {
-    uint32_t value;
-};
-
-struct Flags8 {
-    uint8_t value;
-};
-
-struct Flags64 {
-    uint64_t value;
-};
-
-struct Angle {
-    float value;
-};
-
-struct AnimationString {
-    CharString value;
-};
-
-struct FloatQ8 {
-    float value;
-};
-
-struct EntityLink {
-    uint16_t value;
-};
